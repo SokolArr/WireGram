@@ -1,0 +1,7 @@
+main_prefs:
+  - one: 1
+  - two: '2'
+  
+add_prefs:
+  - one: 1
+  - three: '3'
