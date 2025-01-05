@@ -1,3 +1,24 @@
+# Documentation for `db_manager.py`
+
+## Overview
+
+The `db_manager.py` module provides a class `DbManager` that facilitates interaction with a PostgreSQL database using the `asyncpg` library. It includes methods for building SQL queries for selecting and inserting data, as well as executing those queries asynchronously.
+
+## Class: `DbManager`
+
+### Attributes
+
+- **`__default_db_conn_params`**: A dictionary containing default database connection parameters.
+  - `db_name`: Name of the database (default: `'db'`)
+  - `db_user`: Username for database connection (default: `'admin'`)
+  - `db_password`: Password for database connection (default: `'12345678'`)
+  - `db_host`: Host where the database is located (default: `'localhost'`)
+  - `db_port`: Port for database connection (default: `'2345'`)
+
+- **`__main_schema_name`**: Default schema name used in queries (default: `'main'`).
+
+### Constructor
+def init(self, db_conn_params: dict = __default_db_conn_params, schema_name: str = __main_schema_name)
 
 - **Parameters**:
   - `db_conn_params`: A dictionary of database connection parameters. If not provided, defaults will be used.
