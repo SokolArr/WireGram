@@ -9,31 +9,88 @@ class User:
     def __init__(self, db_manager: DbManager = DbManager()):
         self.dbm: DbManager = db_manager
         
-    async def check_valid_access(self, user_tg_code: str) -> bool:
-        columns = ['user_id',
-                   'user_tg_code',
-                   'valid_flg',
-                   'access_from_dt',
-                   'access_to_dt']
-    
-        response = await self.dbm.fetch_data(columns=columns, 
+    async def check_bot_access(self, user_tg_code: str) -> dict:
+        columns = ['user_tg_code',
+                   'bot_access_from_dttm',
+                   'bot_access_to_dttm']
+        
+        active_access = await self.dbm.fetch_data(columns=columns, 
                                              schema='main', 
                                              table='v_user_x_user_access', 
-                                             condition=f"user_tg_code='{str(user_tg_code)}' and valid_flg = True",
+                                             condition=f"user_tg_code='{str(user_tg_code)}' and bot_access_from_dttm <= current_timestamp and bot_access_to_dttm > current_timestamp",
                                              limit=1)
-        if response:
-            logger.debug(f'user {user_tg_code} have valid user access!')
-            return True
-        else:
-            logger.debug(f'user {user_tg_code} have NO valid user access!')
-            return False
         
-    async def create_access_request(self, user_tg_code, user_name):
+        expire_active_access = await self.dbm.fetch_data(columns=columns, 
+                                             schema='main', 
+                                             table='v_user_x_user_access', 
+                                             condition=f"user_tg_code='{str(user_tg_code)}'",
+                                             limit=1)
+                
+        if active_access:
+            logger.debug(f'user {user_tg_code} have valid BOT access!')
+            d = {
+                'access': True,
+                'dates': (str(active_access[0]['bot_access_from_dttm']), str(active_access[0]['bot_access_to_dttm']))
+            }
+            return d
+        elif expire_active_access:
+            logger.debug(f'user {user_tg_code} have NO valid BOT access!')
+            d = {
+                'access': False,
+                'dates': (str(expire_active_access[0]['bot_access_from_dttm']), str(expire_active_access[0]['bot_access_to_dttm']))
+            }
+            return d
+        else:
+            d = {
+                'access': False,
+                'dates': None
+            }
+            return d
+        
+    async def check_vpn_access(self, user_tg_code: str):
+        columns = ['user_tg_code',
+                   'vpn_access_from_dttm',
+                   'vpn_access_to_dttm']
+        
+        active_access = await self.dbm.fetch_data(columns=columns, 
+                                             schema='main', 
+                                             table='v_user_x_user_access', 
+                                             condition=f"user_tg_code='{str(user_tg_code)}' and vpn_access_from_dttm <= current_timestamp and vpn_access_to_dttm > current_timestamp",
+                                             limit=1)
+        
+        expire_active_access = await self.dbm.fetch_data(columns=columns, 
+                                             schema='main', 
+                                             table='v_user_x_user_access', 
+                                             condition=f"user_tg_code='{str(user_tg_code)}'",
+                                             limit=1)
+                
+        if active_access:
+            logger.debug(f'user {user_tg_code} have valid BOT access!')
+            d = {
+                'access': True,
+                'dates': (str(active_access[0]['vpn_access_from_dttm']), str(active_access[0]['vpn_access_to_dttm']))
+            }
+            return d
+        elif expire_active_access:
+            logger.debug(f'user {user_tg_code} have NO valid BOT access!')
+            d = {
+                'access': False,
+                'dates': (str(expire_active_access[0]['vpn_access_from_dttm']), str(expire_active_access[0]['vpn_access_to_dttm']))
+            }
+            return d
+        else:
+            d = {
+                'access': False,
+                'dates': None
+            }
+            return d
+        
+    async def create_access_request(self, user_tg_code:str, user_name:str = 'null'):
         '''
             True if new request was added\n
             False if request already send
         '''
-        check_columns = ['inserted_dttm']
+        check_columns = ['sys_inserted_dttm']
         
         ins_columns = ['user_tg_code', 'user_name']
         ins_vals = [(str(user_tg_code), user_name)]
@@ -46,7 +103,7 @@ class User:
                                              condition=f"user_tg_code = '{str(user_tg_code)}'")
         
         if check_response:
-            inserted_dttm: datetime = check_response[0]['inserted_dttm']
+            inserted_dttm: datetime = check_response[0]['sys_inserted_dttm']
             inserted_dttm = inserted_dttm.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
             logger.debug(f'user {user_tg_code} already send request to access at {inserted_dttm}!')
             return (False, inserted_dttm)

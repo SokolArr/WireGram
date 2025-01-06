@@ -162,7 +162,7 @@ class DbManager():
         
         except Exception as e:
             logger.error(f'bad try to fetch data: {e}, with query: {query}')
-            return []
+            return ['']
     
     async def ins_data(self, 
                     table: str,
