@@ -6,61 +6,7 @@ logger = logging.getLogger(name=__name__+'.py')
 
 class DbManager():
     """
-    Module: db_manager.py
-
-    This module provides the DbManager class for interacting with a PostgreSQL database using asyncpg.
-    It includes methods for building and executing SQL queries asynchronously.
-
-    Class: DbManager
-
-    Attributes:
-    - __default_db_conn_params: A dictionary containing default database connection parameters.
-    - __main_schema_name: The default schema name used in queries.
-
-    Methods:xn
-    1. __init__(self, db_conn_params: dict = __default_db_conn_params, schema_name: str = __main_schema_name)
-    Initializes a new instance of the DbManager class with the provided database connection parameters and schema name.
-
-    2. async select_query_builder(columns: list = ['1'], table: str = None, schema: str = __main_schema_name, condition: str= None, limit: int = None) -> str
-    Builds a SQL SELECT query based on the provided parameters.
-    - Parameters:
-        - columns: A list of columns to select. Defaults to ['1'].
-        - table: The name of the table to select from.
-        - schema: The schema name. Defaults to the main schema.
-        - condition: Optional SQL condition for the WHERE clause.
-        - limit: Optional limit on the number of results returned.
-    - Returns: A string containing the constructed SQL SELECT query.
-
-    3. async insert_query_builder(self, table:str, vals: list[tuple] = None, insert_type: str = 'values', columns: list = None, schema: str = __main_schema_name, **kwargs) -> str
-    Builds a SQL INSERT query based on provided parameters.
-    - Parameters:
-        - table: The name of the table to insert into.
-        - vals: A list of tuples containing values to insert.
-        - insert_type: Type of insert operation ('values' or 'select'). Defaults to 'values'.
-        - columns: Optional list of columns for the insert operation.
-        - schema: The schema name. Defaults to the main schema.
-        - kwargs: Additional keyword arguments for select-based inserts (sel_columns, sel_table, etc.).
-    - Returns: A string containing the constructed SQL INSERT query or an empty string if an error occurs.
-
-    4. async _get_conn(self) -> asyncpg.Connection
-    Establishes a connection to the PostgreSQL database using the provided connection parameters.
-    - Returns: An instance of asyncpg.Connection.
-
-    5. async fetch_data(self, columns: list = ['1'], schema: str = __main_schema_name, table: str = None, condition: str= None, limit: int = None) -> list[asyncpg.Record]
-    Fetches data from the specified table and returns it as a list of records.
-    - Parameters:
-        - columns: A list of columns to select. Defaults to ['1'].
-        - schema: The schema name. Defaults to the main schema.
-        - table: The name of the table to fetch from.
-        - condition: Optional SQL condition for the WHERE clause.
-        - limit: Optional limit on the number of results returned.
-    - Returns: A list of records fetched from the database or an empty list if an error occurs.
-
-    6. async ins_data(self, table: str, vals: list[tuple]= None, insert_type: str = 'values', columns: list = None, schema: str = __main_schema_name, sel_columns: list = None, sel_table: str = None, sel_schema: str = None, sel_condition: str= None, sel_limit: int = None) -> int
-    Inserts data into the specified table based on provided parameters.
-    - Parameters:
-        - Same as those in the insert query builder method with additional parameters for select-based inserts.
-    - Returns: An integer indicating success (0) or failure (-1).
+    docs
     """
     
     __default_db_conn_params = {
@@ -90,6 +36,89 @@ class DbManager():
             f'{"where " + condition + " " if condition else ""}' \
             f'{"limit " + str(abs(limit)) + " " if limit else ""}'.strip() + ';'
         return q
+    
+    @staticmethod
+    async def gen_table_triggers(tables:list[dict]) -> str:
+        '''tables = [
+            {
+                'table_name': 'user',
+                'cols': ['user_id', 'user_name', 'user_tg_code', 'admin_flg', 'sys_inserted_process', 'sys_inserted_dttm']
+            },
+            {
+                'table_name': 'user_bot_access',
+                'cols': ['user_id', 'access_from_dttm', 'access_to_dttm', 'sys_inserted_process', 'sys_inserted_dttm']
+            }
+        ]'''
+        
+        out_arr = []
+        for el_data in tables:
+            table_name = el_data['table_name']
+            cols = el_data['cols']
+            columns = ', '.join(el_data['cols'])
+            
+            new_prfx_columns = ', '.join(['new.' + el for el in cols])
+            old_prfx_columns = ', '.join(['old.' + el for el in cols])
+
+            out_arr.append(f'''        
+--table_name:= {table_name}
+drop table if exists logs."{table_name}" cascade;
+create table logs."{table_name}" as select "{table_name}".*, '' as oper_code, '1970-01-01 00:00:00'::timestamp oper_dttm from main."{table_name}";                       
+
+drop function if exists main.fn_trg_{table_name}_insert() cascade;
+create or replace function main.fn_trg_{table_name}_insert()
+returns trigger as $$
+begin
+
+    insert into logs."{table_name}" ({columns}, oper_code, oper_dttm)
+    values ({new_prfx_columns}, 'I', current_timestamp);
+    return new;
+
+end;
+$$
+language plpgsql;
+
+create trigger after_{table_name}_insert
+after insert on main."{table_name}"
+for each row
+execute function main.fn_trg_{table_name}_insert();
+
+drop function if exists main.fn_trg_{table_name}_update() cascade;
+create or replace function main.fn_trg_{table_name}_update()
+returns trigger as $$
+begin
+
+    insert into logs."{table_name}" ({columns}, oper_code, oper_dttm)
+    values ({new_prfx_columns}, 'U', current_timestamp);
+    return new;
+
+end;
+$$
+language plpgsql;
+
+create trigger after_{table_name}_update
+after update on main."{table_name}"
+for each row
+execute function main.fn_trg_{table_name}_update();
+
+drop function if exists main.fn_trg_{table_name}_delete() cascade;
+create or replace function main.fn_trg_{table_name}_delete()
+returns trigger as $$
+begin
+
+    insert into logs."{table_name}" ({columns}, oper_code, oper_dttm)
+    values ({old_prfx_columns}, 'D', current_timestamp);
+    return new;
+
+end;
+$$
+language plpgsql;
+
+create trigger after_{table_name}_delete
+after delete on main."{table_name}"
+for each row
+execute function main.fn_trg_{table_name}_delete();'''.strip())
+        out_str = '\n\n'.join(out_arr)
+        return out_str
     
     async def insert_query_builder(self, 
                             table:str,
@@ -144,6 +173,77 @@ class DbManager():
         )
         return conn
     
+    async def _init_db(self, 
+                       load_example:bool = False, 
+                       db_logging:bool = True):
+        
+        try:
+            with open('./bot/modules/bd_api/utils/sql/main.sql', 'r') as file:
+                main_sql = file.read()
+            main_sql=main_sql
+
+            #main
+            try:
+                conn = await self._get_conn()
+                await conn.execute(main_sql)
+                await conn.close()
+                logger.debug(f'successful execute: main.sql')
+            except Exception as e:
+                logger.error(f'bad try to execute: {e}, with query: {main_sql}')
+                raise e
+            
+            #triggers
+            if db_logging:
+                tables_info = []
+                tables_to_log = ['user', 'user_bot_access', 'user_vpn_access', 'user_req_access', 'user_vpn_price']
+            
+                for table in tables_to_log:
+                    col = [el['column_name'] for el in await self.fetch_data(['distinct column_name'], 
+                                                                            'information_schema', 
+                                                                            'columns', 
+                                                                            "table_schema = 'main' and table_name = '"+table+"'")]
+                    if col:
+                        tables_info.append({
+                            'table_name': table,
+                            'cols': col 
+                        })
+            
+                triggers_sql = await self.gen_table_triggers(tables_info)
+                try:
+                    conn = await self._get_conn()
+                    await conn.execute(triggers_sql)
+                    await conn.close()
+                    logger.debug(f'successful execute: triggers_sql')
+                except Exception as e:
+                    logger.error(f'bad try to execute: {e}, with query: {triggers_sql}')
+                    raise e
+                
+            #example
+            with open('./bot/modules/bd_api/utils/sql/example.sql', 'r') as file:
+                example_sql = file.read()  
+            example_sql = example_sql
+            if load_example & (example_sql != ''):
+                try:
+                    conn = await self._get_conn()
+                    await conn.execute(example_sql)
+                    await conn.close()
+                    logger.debug(f'successful execute: example.sql')
+                except Exception as e:
+                    logger.error(f'bad try to execute: {e}, with query: {example_sql}')
+                    raise e
+            
+            #save to db_init.sql
+            query = main_sql + triggers_sql + example_sql
+            with open('./bot/modules/bd_api/utils/sql/db_init.sql', 'w') as f:
+                    f.truncate(0)
+                    f.write(query)
+            logger.debug(f'successful execute init db. Save file to sql/db_init.sql')
+        
+        except Exception as e:
+                    logger.error(f'bad try to execute bd_init: {e}')
+                    raise e
+        
+        return None
 
     async def fetch_data(self,
                     columns: list = ['1'],
@@ -154,15 +254,24 @@ class DbManager():
         query = await self.select_query_builder(columns=columns, schema=schema, table=table, condition=condition, limit=limit)    
         try:
             conn = await self._get_conn()
-            rows:list[asyncpg.Record] = await conn.fetch(query)
-            logger.debug(f'successful fetch data with query: {query}')
-            await conn.close()
+            rows = []
+            try:
+                async with conn.transaction():
+                    rows:list[asyncpg.Record] = await conn.fetch(query)
+                logger.debug(f'successful fetch data with query: {query}')
+
+            except Exception as e:
+                logger.error(f'{e}')
+                raise e
+            
+            finally:
+                await conn.close()
             
             return rows
         
         except Exception as e:
             logger.error(f'bad try to fetch data: {e}, with query: {query}')
-            return ['']
+            raise e
     
     async def ins_data(self, 
                     table: str,
@@ -187,12 +296,19 @@ class DbManager():
                                                     sel_limit=sel_limit)
         try:
             conn = await self._get_conn()
-            await conn.execute(query)
-            logger.debug(f'successful insert data with query: {query}')
-            await conn.close()
+            try:
+                async with conn.transaction():
+                    await conn.execute(query)
+                logger.debug(f'successful insert data with query: {query}')
+                
+            except Exception as e:
+                logger.error(f'{e}')
+                raise e
             
+            finally:
+                await conn.close()
             return 0
         
         except Exception as e:
             logger.error(f'bad try to insert data: {e}, with query: {query}')
-            return -1
+            raise e
