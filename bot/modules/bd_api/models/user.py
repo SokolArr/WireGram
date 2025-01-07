@@ -9,7 +9,26 @@ class User:
     def __init__(self, db_manager: DbManager = DbManager()):
         self.dbm: DbManager = db_manager
         
-    async def check_bot_access(self, user_tg_code: str) -> dict:
+    async def get_user_data(self, user_tg_code: str) -> dict:
+        columns = ['user_id','user_name','user_tg_code','admin_flg']
+        
+        response = await self.dbm.fetch_data(columns=columns, 
+                                schema='main', 
+                                table='user', 
+                                condition=f"user_tg_code='{str(user_tg_code)}'",
+                                limit=1)
+        if response:
+            response = response[0]
+            return {
+                'user_id': response['user_id'],
+                'user_name': response['user_name'],
+                'user_tg_code': response['user_tg_code'],
+                'admin_flg': response['admin_flg']
+            }
+        else:
+            return {}
+        
+    async def get_bot_access_data(self, user_tg_code: str) -> dict:
         columns = ['user_tg_code',
                    'bot_access_from_dttm',
                    'bot_access_to_dttm']
@@ -26,30 +45,33 @@ class User:
                                              condition=f"user_tg_code='{str(user_tg_code)}'",
                                              limit=1)
         
-        print(active_access, expire_active_access)
-                
         if active_access:
+            active_access = active_access[0]
             logger.debug(f'user {user_tg_code} have valid BOT access!')
-            d = {
+            return {
                 'access': True,
-                'dates': (str(active_access[0]['bot_access_from_dttm']), str(active_access[0]['bot_access_to_dttm']))
+                'tuple_dates': (str(active_access['bot_access_from_dttm']), str(active_access['bot_access_to_dttm'])),
+                'date_from': str(active_access['bot_access_from_dttm']),
+                'date_to': str(active_access['bot_access_to_dttm'])
             }
-            return d
         elif expire_active_access:
+            expire_active_access = expire_active_access[0]
             logger.debug(f'user {user_tg_code} have NO valid BOT access!')
-            d = {
+            return {
                 'access': False,
-                'dates': (str(expire_active_access[0]['bot_access_from_dttm']), str(expire_active_access[0]['bot_access_to_dttm']))
+                'tuple_dates': (str(expire_active_access['bot_access_from_dttm']), str(expire_active_access['bot_access_to_dttm'])),
+                'date_from': str(expire_active_access['bot_access_from_dttm']),
+                'date_to': str(expire_active_access['bot_access_to_dttm'])
             }
-            return d
         else:
-            d = {
+            return {
                 'access': False,
-                'dates': None
+                'tuple_dates': None,
+                'date_from': None,
+                'date_to': None
             }
-            return d
         
-    async def check_vpn_access(self, user_tg_code: str):
+    async def get_vpn_access_data(self, user_tg_code: str):
         columns = ['user_tg_code',
                    'vpn_access_from_dttm',
                    'vpn_access_to_dttm']
@@ -67,25 +89,30 @@ class User:
                                              limit=1)
                 
         if active_access:
-            logger.debug(f'user {user_tg_code} have valid BOT access!')
-            d = {
+            active_access = active_access[0]
+            logger.debug(f'user {user_tg_code} have valid VPN access!')
+            return {
                 'access': True,
-                'dates': (str(active_access[0]['vpn_access_from_dttm']), str(active_access[0]['vpn_access_to_dttm']))
+                'tuple_dates': (str(active_access['vpn_access_from_dttm']), str(active_access['vpn_access_to_dttm'])),
+                'date_from': str(active_access['vpn_access_from_dttm']),
+                'date_to': str(active_access['vpn_access_to_dttm'])
             }
-            return d
         elif expire_active_access:
-            logger.debug(f'user {user_tg_code} have NO valid BOT access!')
-            d = {
+            expire_active_access = expire_active_access[0]
+            logger.debug(f'user {user_tg_code} have NO valid VPN access!')
+            return {
                 'access': False,
-                'dates': (str(expire_active_access[0]['vpn_access_from_dttm']), str(expire_active_access[0]['vpn_access_to_dttm']))
+                'tuple_dates': (str(expire_active_access['vpn_access_from_dttm']), str(expire_active_access['vpn_access_to_dttm'])),
+                'date_from': str(expire_active_access['vpn_access_from_dttm']),
+                'date_to': str(expire_active_access['vpn_access_to_dttm'])
             }
-            return d
         else:
-            d = {
+            return {
                 'access': False,
-                'dates': None
+                'tuple_dates': None,
+                'date_from': None,
+                'date_to': None
             }
-            return d
         
     async def create_access_request(self, user_tg_code:str, user_name:str = 'null'):
         '''
@@ -101,7 +128,7 @@ class User:
         
         check_response = await self.dbm.fetch_data(columns=check_columns, 
                                              schema='main', 
-                                             table='user_req_access', 
+                                             table='user_bot_req_access', 
                                              condition=f"user_tg_code = '{str(user_tg_code)}'")
         
         if check_response:
@@ -115,6 +142,6 @@ class User:
             
             await self.dbm.ins_data(columns=ins_columns, 
                                     schema='main', 
-                                    table='user_req_access',
+                                    table='user_bot_req_access',
                                     vals=ins_vals)
             return (True, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))

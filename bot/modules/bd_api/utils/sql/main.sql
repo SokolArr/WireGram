@@ -39,23 +39,20 @@ create table if not exists main.user_bot_access (
 	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
-drop table if exists main.user_req_access cascade;
-create table if not exists main.user_req_access (
+drop table if exists main.user_bot_req_access cascade;
+create table if not exists main.user_bot_req_access (
 	user_tg_code text not null primary key,
 	user_name text default 'NO_USER_NAME',
 	--tech_attrs
 	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
-drop table if exists main.user_order cascade;
-create table if not exists main.user_order (
-	user_id uuid,
-	order_id uuid,
+drop table if exists main.user_vpn_req_access cascade;
+create table if not exists main.user_vpn_req_access (
+	user_tg_code text not null primary key,
+	user_name text default 'NO_USER_NAME',
 	--tech_attrs
-	sys_inserted_process text default 'MANUAL' not null,
-	sys_inserted_dttm timestamp default current_timestamp not null,
-	--constraints
-	constraint user_order_pk primary key (user_id, order_id)
+	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
 drop table if exists main.user_vpn_price cascade;
@@ -92,6 +89,7 @@ create table if not exists main."order" (
 	order_id uuid primary key,
 	order_amnt decimal,
 	order_dttm timestamp,
+	user_id uuid,
 	--tech_attrs
 	sys_inserted_process text default 'MANUAL' not null,
 	sys_inserted_dttm timestamp default current_timestamp not null
@@ -136,10 +134,8 @@ drop view if exists main.v_new_user;
 create or replace view main.v_new_user as
 select 
 	user_tg_code,
-	user_name,
-	--tech_attrs
-	sys_inserted_dttm
+	user_name
 from
-	main.user_req_access
+	main.user_bot_req_access
 where 
 	user_tg_code not in (select user_tg_code from main.v_user_x_user_access);

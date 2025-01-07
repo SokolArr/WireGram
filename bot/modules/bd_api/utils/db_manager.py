@@ -31,8 +31,9 @@ class DbManager():
                             schema: str = __main_schema_name, 
                             condition: str= None, 
                             limit: int = None) -> str:
+        quot = '"'
         q = f'select {",".join(columns)} ' \
-            f'{"from " + schema + "." + table + " " if table else ""}' \
+            f'{"from " + schema + "." + quot + table + quot+ " " if table else ""}' \
             f'{"where " + condition + " " if condition else ""}' \
             f'{"limit " + str(abs(limit)) + " " if limit else ""}'.strip() + ';'
         return q
@@ -183,64 +184,71 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             main_sql=main_sql
 
             #main
+            conn = await self._get_conn()
             try:
-                conn = await self._get_conn()
-                await conn.execute(main_sql)
-                await conn.close()
-                logger.debug(f'successful execute: main.sql')
+                async with conn.transaction():
+                    await conn.execute(main_sql)
+                logger.debug(f'SUCCESSFUL execute: main.sql')
             except Exception as e:
-                logger.error(f'bad try to execute: {e}, with query: {main_sql}')
+                logger.error(f'BAD TRY to execute: {e}, with query: {main_sql}')
                 raise e
+            finally:
+                await conn.close()
             
             #triggers
             if db_logging:
                 tables_info = []
-                tables_to_log = ['user', 'user_bot_access', 'user_vpn_access', 'user_req_access', 'user_vpn_price']
+                tables_to_log = ['user', 'user_bot_access', 'user_vpn_access', 'user_vpn_req_access', 'user_bot_req_access', 'user_vpn_price']
             
                 for table in tables_to_log:
                     col = [el['column_name'] for el in await self.fetch_data(['distinct column_name'], 
                                                                             'information_schema', 
                                                                             'columns', 
                                                                             "table_schema = 'main' and table_name = '"+table+"'")]
-                    if col:
+                    if col: #if no columns recieved in information_schema: no tables for log!
                         tables_info.append({
                             'table_name': table,
                             'cols': col 
                         })
             
                 triggers_sql = await self.gen_table_triggers(tables_info)
+                
+                conn = await self._get_conn()
                 try:
-                    conn = await self._get_conn()
-                    await conn.execute(triggers_sql)
-                    await conn.close()
-                    logger.debug(f'successful execute: triggers_sql')
+                    async with conn.transaction():
+                        await conn.execute(triggers_sql)
+                    logger.debug(f'SUCCESSFUL execute: triggers_sql')
                 except Exception as e:
-                    logger.error(f'bad try to execute: {e}, with query: {triggers_sql}')
+                    logger.error(f'BAD TRY to execute: {e}, with query: {triggers_sql}')
                     raise e
+                finally:
+                    await conn.close()
                 
             #example
             with open('./bot/modules/bd_api/utils/sql/example.sql', 'r') as file:
                 example_sql = file.read()  
             example_sql = example_sql
             if load_example & (example_sql != ''):
+                conn = await self._get_conn()
                 try:
-                    conn = await self._get_conn()
-                    await conn.execute(example_sql)
-                    await conn.close()
-                    logger.debug(f'successful execute: example.sql')
+                    async with conn.transaction():
+                        await conn.execute(example_sql)
+                    logger.debug(f'SUCCESSFUL execute: example.sql')
                 except Exception as e:
-                    logger.error(f'bad try to execute: {e}, with query: {example_sql}')
+                    logger.error(f'BAD TRY to execute: {e}, with query: {example_sql}')
                     raise e
+                finally:
+                    await conn.close()
             
             #save to db_init.sql
             query = main_sql + triggers_sql + example_sql
             with open('./bot/modules/bd_api/utils/sql/db_init.sql', 'w') as f:
                     f.truncate(0)
                     f.write(query)
-            logger.debug(f'successful execute init db. Save file to sql/db_init.sql')
+            logger.debug(f'SUCCESSFUL execute init db. Save file to sql/db_init.sql')
         
         except Exception as e:
-                    logger.error(f'bad try to execute bd_init: {e}')
+                    logger.error(f'BAD TRY to execute bd_init: {e}')
                     raise e
         
         return None
@@ -258,19 +266,19 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             try:
                 async with conn.transaction():
                     rows:list[asyncpg.Record] = await conn.fetch(query)
-                logger.debug(f'successful fetch data with query: {query}')
-
+                if rows == []:
+                    logger.debug(f'NO ROWS fetched by query: {query}')
+                else:
+                    logger.debug(f'SUCCESSFUL fetch data with query: {query}')
             except Exception as e:
                 logger.error(f'{e}')
                 raise e
-            
             finally:
                 await conn.close()
-            
             return rows
         
         except Exception as e:
-            logger.error(f'bad try to fetch data: {e}, with query: {query}')
+            logger.error(f'BAD TRY to fetch data: {e}, with query: {query}')
             raise e
     
     async def ins_data(self, 
@@ -299,7 +307,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             try:
                 async with conn.transaction():
                     await conn.execute(query)
-                logger.debug(f'successful insert data with query: {query}')
+                logger.debug(f'SUCCESSFUL insert data with query: {query}')
                 
             except Exception as e:
                 logger.error(f'{e}')
@@ -310,5 +318,5 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             return 0
         
         except Exception as e:
-            logger.error(f'bad try to insert data: {e}, with query: {query}')
+            logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
             raise e
