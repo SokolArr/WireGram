@@ -3,6 +3,8 @@ import logging
 import sys
 from datetime import datetime, timezone
 
+from py3xui import AsyncApi
+
 from aiogram import Bot, Dispatcher, html, types, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -13,23 +15,23 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram import F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from modules.bd_api.models.user import User
+from models.user import User
+from modules.utils.config_parser import ConfigParser
 
-import yaml
-
-def read_yaml_file(file_path):
-    with open(file_path, 'r') as file:
-        data = yaml.safe_load(file)
-    return data
-
-config = read_yaml_file('./bot/bot_creds.yaml')
-prefs = read_yaml_file('./bot/prefs.yaml')
-TOKEN = config.get('bot_token')
+parser = ConfigParser('bot/config.yaml', 
+                      'bot/hide_config.yaml')
+TOKEN = parser.get_bot_config()['token']
+HOST = parser.get_three_xui_config()['host_url']
+USER_NAME = parser.get_three_xui_config()['user_name']
+PASSWORD = parser.get_three_xui_config()['password']
+DEBUG_MODE = parser.get_logging_config()['debug_mode']
 
 dp = Dispatcher()
+vless_api = AsyncApi(host=HOST, username=USER_NAME, password=PASSWORD)
 
-bot_user = User()
+bot_user = User(vless_api=vless_api)
 bot_started_dttm = datetime.now(tz=timezone.utc)
+
 
 async def error_message(message: Message, exeption:str, err_code:int):
     if err_code == 1:
@@ -59,11 +61,14 @@ def get_menu_keyboard(user_id):
         [InlineKeyboardButton(text="📄 Конфиг для подключения", 
                                 callback_data=('menu_btn_get_conf__'+str(user_id))
                                 )],
-        [InlineKeyboardButton(text="📋 Статус по всем привилегиям", 
+        [InlineKeyboardButton(text="📊 Проверить остатки и баланс", 
                                 callback_data=('menu_btn_get_all_status__'+str(user_id))
                                 )],
         [InlineKeyboardButton(text="✅ Продлить доступ", 
                                 callback_data=('menu_btn_renew_vpn_access__'+str(user_id))
+                                )],
+        [InlineKeyboardButton(text="💰 Я сделал оплату!", 
+                                callback_data=('menu_btn_pay_request__'+str(user_id))
                                 )]
     ]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
@@ -94,25 +99,43 @@ async def menu_btn_handler(call: types.CallbackQuery):
             (acсess, valid_to_date) = await get_bot_access(user_id)
             if acсess:
                 if call_tag == 'menu_btn_get_conf':
-                    await call.message.answer('Мяу вместо конфига')
+                    await call.message.edit_text("🔎 Ушел искать...")
+                    vless_conf = await bot_user.get_or_create_conn_config(user_id)
+                    await call.message.edit_text("Вот твой конфиг:\n"+html.pre(vless_conf),reply_markup=get_menu_back_btn(user_id))
+                     
                 elif call_tag == 'menu_btn_get_conf':   
                     pass
                 elif call_tag == 'menu_btn_get_all_status':
-                    (vpn_access, valid_to_date) = await get_vpn_access(user_id)
-
-                    pay_request = False
-                    max_speed = 8
+                    (vpn_access, vpn_access_valid_to_date) = await get_vpn_access(user_id)
+                    (pay_request, prev_req_dttm)= await bot_user.get_pay_request_data(user_id)
+                    gb_left = 999999
                     
-                    vpn_access_mess = html.bold("Доступ к VPN: ") + (f"✅\n- действует до {valid_to_date}" if vpn_access else "⛔️\n - нет") + "\n\n"
-                    pay_request_mess = html.bold("Запрос на оплату: ") + ("✅\n - есть [from]" if pay_request else "⛔️\n - не нашел активных запросов") + "\n\n"
-                    max_speed_mess = html.bold("Максимальная скорость соединения:\n") + "- "+ str(max_speed) + "Mb/s"
+                    vpn_access_mess = html.bold("Доступ к VPN: ") + (f"✅\n- действует до {vpn_access_valid_to_date}" if vpn_access else "⛔️\n - нет") + "\n\n"
+                    pay_request_mess = html.bold("Запрос на оплату: ") + (f"✅\n - Нашел, был сделан {prev_req_dttm}" if pay_request else "⛔️\n - не нашел активных запросов") + "\n\n"
+                    max_speed_mess = html.bold("Осталось трафика:\n") + "- "+ str(gb_left) + " Gb"
                     
                     status_mess  = vpn_access_mess + pay_request_mess + max_speed_mess
                     
                     await call.message.edit_text(f"{status_mess}", reply_markup=get_menu_back_btn(user_id))
                                 
-                elif call_tag == 'menu_btn_renew_vpn_access':   
-                    await call.message.answer('Не спеши, не готово еще')
+                elif call_tag == 'menu_btn_renew_vpn_access':
+                    (vpn_access, valid_to_date) = await get_vpn_access(user_id)
+                    if vpn_access:
+                        await call.message.edit_text(f"У тебя уже есть доступ до {valid_to_date}!",reply_markup=get_menu_back_btn(user_id))
+                    else:
+                        (is_add, prev_req_dttm) = await bot_user.get_or_create_vpn_access_request(user_id)
+                        if is_add:
+                            await call.message.edit_text(f"Запросил доступ для тебя. Пожалуйста, дождись его одобрения или свяжись с администратором",reply_markup=get_menu_back_btn(user_id))
+                        else:
+                            await call.message.edit_text(f"Запрос уже был отправлен {prev_req_dttm} UTC, пожалуйста, дождись его одобрения",reply_markup=get_menu_back_btn(user_id))
+                            
+                elif call_tag == 'menu_btn_pay_request':
+                    (is_add, prev_req_dttm) = await bot_user.get_or_create_pay_request(user_id)
+                    if is_add:
+                        await call.message.edit_text(f"Сделал запрос на оплату. Пожалуйста, дождись его одобрения или свяжись с администратором",reply_markup=get_menu_back_btn(user_id))
+                    else:
+                        await call.message.edit_text(f"Запрос уже был отправлен {prev_req_dttm} UTC, пожалуйста, дождись его одобрения",reply_markup=get_menu_back_btn(user_id))
+                            
                 
                 elif call_tag == 'menu_btn_close':
                     await call.message.edit_reply_markup()
@@ -155,7 +178,7 @@ async def command_start_handler(message: Message) -> None:
             if acсess:
                 await message.answer(f"У тебя уже есть доступ до {valid_to_date}!")
             else:
-                (is_add, prev_req_dttm) = await bot_user.create_access_request(message.from_user.id, message.from_user.username)
+                (is_add, prev_req_dttm) = await bot_user.get_or_create_bot_access_request(message.from_user.id, message.from_user.username)
                 if is_add:
                     await message.answer(f"Запросил доступ для тебя. Пожалуйста, дождись его одобрения или свяжись с администратором")
                 else:
@@ -176,12 +199,13 @@ async def command_start_handler(message: Message) -> None:
             await error_message(message, e, 1)
                        
 async def main() -> None:
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))    
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))  
     await dp.start_polling(bot)
+    
 
 if __name__ == "__main__":
     logger = logging.getLogger()    
-    logger.setLevel(logging.DEBUG) if prefs.get('main_prefs')['debug_mode'] else logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG) if DEBUG_MODE else logger.setLevel(logging.INFO)
     formatter = logging.Formatter('[%(asctime)s]-[%(name)s]-%(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     
     #file_handler
@@ -197,4 +221,6 @@ if __name__ == "__main__":
     logger.addHandler(console_handler)
 
     #!!!main instance!!!
+    logger.info('------------------BOT_STARTED------------------\n')
     asyncio.run(main())
+    logger.info('------------------BOT_DOWN------------------\n')  

@@ -21,7 +21,7 @@ create table if not exists main."user" (
 
 drop table if exists main.user_vpn_access cascade;
 create table if not exists main.user_vpn_access (
-	user_id uuid not null,
+	user_id uuid primary key not null,
 	access_from_dttm timestamp default current_timestamp not null,
 	access_to_dttm timestamp default '9999-01-01'::date not null,
 	--tech_attrs
@@ -31,7 +31,7 @@ create table if not exists main.user_vpn_access (
 
 drop table if exists main.user_bot_access cascade;
 create table if not exists main.user_bot_access (
-	user_id uuid not null,
+	user_id uuid primary key not null,
 	access_from_dttm timestamp default current_timestamp not null,
 	access_to_dttm timestamp default '9999-01-01'::date not null,
 	--tech_attrs
@@ -49,6 +49,14 @@ create table if not exists main.user_bot_req_access (
 
 drop table if exists main.user_vpn_req_access cascade;
 create table if not exists main.user_vpn_req_access (
+	user_tg_code text not null primary key,
+	user_name text default 'NO_USER_NAME',
+	--tech_attrs
+	sys_inserted_dttm timestamp default current_timestamp not null
+);
+
+drop table if exists main.user_pay_req cascade;
+create table if not exists main.user_pay_req (
 	user_tg_code text not null primary key,
 	user_name text default 'NO_USER_NAME',
 	--tech_attrs

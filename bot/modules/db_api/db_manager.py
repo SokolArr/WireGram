@@ -1,6 +1,8 @@
 import logging
 import asyncpg
 
+from uuid import UUID
+
 # init Logger
 logger = logging.getLogger(name=__name__+'.py')
 
@@ -26,16 +28,29 @@ class DbManager():
         logger.debug(f'init user; db_conn_params:{self.db_conn_params}')
     
     @staticmethod
-    async def select_query_builder(columns: list = ['1'], 
+    async def select_query_builder(columns: list[str] = ['1'], 
                             table: str = None, 
                             schema: str = __main_schema_name, 
                             condition: str= None, 
+                            gby: list[str] = None,
+                            having: str= None,
                             limit: int = None) -> str:
         quot = '"'
         q = f'select {",".join(columns)} ' \
             f'{"from " + schema + "." + quot + table + quot+ " " if table else ""}' \
             f'{"where " + condition + " " if condition else ""}' \
+            f'{"group by " + ",".join(set(gby)) + " " if gby else ""}' \
+            f'{"having " + having + " " if having else ""}' \
             f'{"limit " + str(abs(limit)) + " " if limit else ""}'.strip() + ';'
+        return q
+    
+    @staticmethod
+    async def delete_query_builder(table:str, 
+                                condition:str,
+                                schema: str = __main_schema_name) -> str:
+        quot = '"'
+        q = f'{"delete from " + schema + "." + quot + table + quot+ " " if table else ""}' \
+            f'{"where " + condition + " " if condition else ""}'.strip() + ';'
         return q
     
     @staticmethod
@@ -127,6 +142,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
                             insert_type: str = 'values',
                             columns: list = None,
                             schema: str = __main_schema_name,
+                            sys_proc_flg: bool = True,
                             **kwargs) -> str:
         '''
         insert_type= values || select
@@ -144,7 +160,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
                                                            condition=sel_condition, 
                                                            limit=sel_limit)
                 q = f'insert into ' + f'{schema + "." + table + " "}'\
-                f'{"(" + (",".join(columns)) + ") " if columns else ""}'\
+                f'{"(" + (",".join(columns)) +") " if columns else ""}'\
                 f'{select_q}'
                 return q
             except Exception as e:
@@ -154,8 +170,8 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
         elif insert_type == 'values':
             if vals:
                 q = f'insert into ' + f'{schema + "." + table + " "}'\
-                    f'{"(" + (",".join(columns)) + ") " if columns else ""}'\
-                    f'values {",".join(str(val) for val in vals)}'.strip() + ';'
+                    f'{"(" + (",".join(columns)) + (",sys_inserted_process" if sys_proc_flg else "") + ") " if columns else ""}'\
+                    f'values {",".join(str((*val, __name__) if sys_proc_flg else val) for val in vals)}'.strip() + ';'
                 return q
             else:
                 logger.error(f'no values to insert')
@@ -177,9 +193,8 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
     async def _init_db(self, 
                        load_example:bool = False, 
                        db_logging:bool = True):
-        
         try:
-            with open('./bot/modules/bd_api/utils/sql/main.sql', 'r') as file:
+            with open('bot/modules/db_api/sql/main.sql', 'r') as file:
                 main_sql = file.read()
             main_sql=main_sql
 
@@ -198,7 +213,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             #triggers
             if db_logging:
                 tables_info = []
-                tables_to_log = ['user', 'user_bot_access', 'user_vpn_access', 'user_vpn_req_access', 'user_bot_req_access', 'user_vpn_price']
+                tables_to_log = ['user', 'user_bot_access', 'user_vpn_access', 'user_vpn_req_access', 'user_bot_req_access', 'user_vpn_price', 'user_pay_req']
             
                 for table in tables_to_log:
                     col = [el['column_name'] for el in await self.fetch_data(['distinct column_name'], 
@@ -225,7 +240,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
                     await conn.close()
                 
             #example
-            with open('./bot/modules/bd_api/utils/sql/example.sql', 'r') as file:
+            with open('bot/modules/db_api/sql/example.sql', 'r') as file:
                 example_sql = file.read()  
             example_sql = example_sql
             if load_example & (example_sql != ''):
@@ -242,7 +257,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
             
             #save to db_init.sql
             query = main_sql + triggers_sql + example_sql
-            with open('./bot/modules/bd_api/utils/sql/db_init.sql', 'w') as f:
+            with open('bot/modules/db_api/sql/db_init.sql', 'w') as f:
                     f.truncate(0)
                     f.write(query)
             logger.debug(f'SUCCESSFUL execute init db. Save file to sql/db_init.sql')
@@ -253,13 +268,38 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
         
         return None
 
+    async def delete_data(self, table:str, 
+                                condition:str,
+                                schema: str = __main_schema_name) -> str:
+        query = await self.delete_query_builder(table=table, condition=condition, schema=schema)
+        try:
+            conn = await self._get_conn()
+            try:
+                async with conn.transaction():
+                    await conn.execute(query)
+                logger.debug(f'SUCCESSFUL delete data with query: {query}')
+                
+            except Exception as e:
+                logger.error(f'{e}')
+                raise e
+            
+            finally:
+                await conn.close()
+            return 0
+        
+        except Exception as e:
+            logger.error(f'BAD TRY to delete data: {e}, with query: {query}')
+            raise e
+
     async def fetch_data(self,
                     columns: list = ['1'],
                     schema: str = __main_schema_name, 
                     table: str = None,
-                    condition: str= None, 
+                    condition: str= None,
+                    gby: list[str] = None,
+                    having: str= None,
                     limit: int = None) -> list[asyncpg.Record]:
-        query = await self.select_query_builder(columns=columns, schema=schema, table=table, condition=condition, limit=limit)    
+        query = await self.select_query_builder(columns=columns, schema=schema, table=table, condition=condition, gby=gby, having=having,limit=limit)    
         try:
             conn = await self._get_conn()
             rows = []
@@ -287,6 +327,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
                     insert_type: str = 'values',
                     columns: list = None,
                     schema: str = __main_schema_name,
+                    sys_proc_flg: bool = True,
                     sel_columns: list = None,
                     sel_table: str = None,
                     sel_schema:  str = None,
@@ -297,6 +338,7 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
                                                     table=table, 
                                                     columns=columns, 
                                                     vals=vals, 
+                                                    sys_proc_flg=sys_proc_flg,
                                                     sel_columns=sel_columns,
                                                     sel_table=sel_table,
                                                     sel_schema=sel_schema,
@@ -320,3 +362,71 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
         except Exception as e:
             logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
             raise e
+        
+    async def ins_row_delbefore_data(self, 
+                    table: str,
+                    vals: tuple,
+                    pk_keys: list[str],
+                    columns: list[str] = None,
+                    schema: str = __main_schema_name):
+          
+        result_string = ' and '.join( [f"{key} = '{vals[columns.index(key)]}'" if isinstance(vals[columns.index(key)], str|UUID) else f"{key} = {vals[columns.index(key)]}" for key in pk_keys])
+        
+        del_query = await self.delete_query_builder(table=table, schema=schema, condition=result_string)
+        ins_query = await self.insert_query_builder(schema=schema, table=table, columns=columns, vals=[vals])
+        query = del_query+ins_query 
+        try:
+            conn = await self._get_conn()
+            try:
+                async with conn.transaction():
+                    await conn.execute(query)
+                logger.debug(f'SUCCESSFUL insert data with query: {query}')
+                
+            except Exception as e:
+                logger.error(f'{e}')
+                raise e
+            
+            finally:
+                await conn.close()
+            return 0
+        
+        except Exception as e:
+            logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
+            raise e
+        
+    async def ins_del_row_data(self, 
+                    table_1: str,
+                    vals_1: tuple,
+                    pk_keys_1: list[str],
+                    table_2:str, 
+                    condition_2:str,
+                    columns_1: list[str] = None,
+                    schema_1: str = __main_schema_name,
+                    schema_2: str = __main_schema_name):
+        result_string = ' and '.join( [f"{key} = '{vals_1[columns_1.index(key)]}'" if isinstance(vals_1[columns_1.index(key)], str|UUID) else f"{key} = {vals_1[columns_1.index(key)]}" for key in pk_keys_1])
+        del_query = await self.delete_query_builder(table=table_1, schema=schema_1, condition=result_string)
+        ins_query = await self.insert_query_builder(schema=schema_1, table=table_1, columns=columns_1, vals=[vals_1])
+        query1 = del_query+ins_query 
+        query2 = await self.delete_query_builder(table=table_2, condition=condition_2, schema=schema_2)
+        query = query1 + query2
+        
+        print(query)
+        try:
+            conn = await self._get_conn()
+            try:
+                async with conn.transaction():
+                    await conn.execute(query1+query2)
+                logger.debug(f'SUCCESSFUL insert data with query: {query}')
+                
+            except Exception as e:
+                logger.error(f'{e}')
+                raise e
+            
+            finally:
+                await conn.close()
+            return 0
+        
+        except Exception as e:
+            logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
+            raise e
+        

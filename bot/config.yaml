@@ -1,0 +1,15 @@
+main:
+  bot:
+      token: Null
+
+  three_xui:
+    host_url: Null
+    user_name: Null
+    password: Null
+    add_path_url: Null
+    token: Null
+
+  logging:
+    debug_mode: True
+
+  

@@ -2,6 +2,7 @@ db_data/
 *test*
 *creds*
 db_init.sql
+*hide_config*
 
 
 
@@ -177,3 +178,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+bot/.DS_Store

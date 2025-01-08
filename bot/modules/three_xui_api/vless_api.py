@@ -9,10 +9,14 @@ class VlessInboundApi():
       self.api: AsyncApi = api
       
     async def get_inbounds_data(self) -> list[dict]:
+        await self.api.login()
+        
         inbounds = await self.api.inbound.get_list()
         return [{'remark': inbound.remark, 'id': inbound.id, 'port': inbound.port} for inbound in inbounds]
 
     async def get_inbounds_id_by_remark(self, remark:str) -> int:
+        await self.api.login()
+        
         inbounds_data = await self.get_inbounds_data()
         for inbound in inbounds_data:
             if inbound.get('remark') == remark:
@@ -71,14 +75,14 @@ class VlessInboundApi():
             except Exception as e:
                 logging.error(e)
                 raise e
-            
-            
+                      
 class VlessClientApi():
     def __init__(self, api: AsyncApi):
       self.api: AsyncApi = api
       
     async def make_vless_client(self, inbound_id:int, client_email:str='default') -> str:
         await self.api.login()
+        
         if await self.api.client.get_by_email(client_email):
             logging.debug(f'Client: "{client_email}" already exists! Skipped!')
             return None
@@ -89,6 +93,8 @@ class VlessClientApi():
             return client_email
             
     async def get_vless_client_link_by_email(self, email:str) -> str:
+        await self.api.login()
+        
         vless_link = ''
         client = await self.api.client.get_by_email(email)
         inbound = await self.api.inbound.get_by_id(client.inbound_id)
