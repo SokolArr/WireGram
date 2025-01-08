@@ -44,6 +44,7 @@ create table if not exists main.user_bot_req_access (
 	user_tg_code text not null primary key,
 	user_name text default 'NO_USER_NAME',
 	--tech_attrs
+	sys_inserted_process text default 'MANUAL' not null,
 	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
@@ -52,6 +53,7 @@ create table if not exists main.user_vpn_req_access (
 	user_tg_code text not null primary key,
 	user_name text default 'NO_USER_NAME',
 	--tech_attrs
+	sys_inserted_process text default 'MANUAL' not null,
 	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
@@ -60,6 +62,7 @@ create table if not exists main.user_pay_req (
 	user_tg_code text not null primary key,
 	user_name text default 'NO_USER_NAME',
 	--tech_attrs
+	sys_inserted_process text default 'MANUAL' not null,
 	sys_inserted_dttm timestamp default current_timestamp not null
 );
 
