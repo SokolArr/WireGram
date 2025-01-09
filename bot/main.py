@@ -18,7 +18,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from models.user import User
 from modules.utils.config_parser import ConfigParser
 
-parser = ConfigParser('bot/config.yaml', 
+parser = ConfigParser('bot/config.yaml',
                       'bot/hide_config.yaml')
 TOKEN = parser.get_bot_config()['token']
 HOST = parser.get_three_xui_config()['host_url']

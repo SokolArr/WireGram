@@ -1,7 +1,10 @@
 from sqlalchemy import Column, Integer, Text, Boolean
-from base_table import BaseTable
+from models.base_table import BaseTable
+from sqlalchemy.orm import DeclarativeBase
 
-class UserTable(BaseTable):
+class Base(DeclarativeBase): pass
+
+class UserTable(BaseTable, Base):
     DEFAULT_SCHEMA_NAME = 'main'
     __tablename__       = 'user'
     __table_args__      = {'schema': DEFAULT_SCHEMA_NAME}

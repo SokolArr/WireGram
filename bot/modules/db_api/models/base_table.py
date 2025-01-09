@@ -1,11 +1,10 @@
-from sqlalchemy.orm import declarative_base
 from sqlalchemy.engine import Engine
 from sqlalchemy import Column, Text, TIMESTAMP
 from sqlalchemy.sql import text
 
 import logging
-BASE = declarative_base()
-class BaseTable(BASE):
+
+class BaseTable():
     '''
         __abstract__
         __tablename__
