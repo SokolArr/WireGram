@@ -429,4 +429,14 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
         except Exception as e:
             logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
             raise e
+   
+   
+   
+    
+    async def init_user_tables(self):
+        return 0
+    
+    async def init_user_acess_tables(self):
+        return 0
+    
     
