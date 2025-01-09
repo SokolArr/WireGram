@@ -4,7 +4,7 @@ db_data/
 db_init.sql
 *hide_config*
 myenv
-
+__old
 
 
 # Byte-compiled / optimized / DLL files

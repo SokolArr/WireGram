@@ -16,7 +16,7 @@ from aiogram import F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from models.user import User
-from modules.utils.config_parser import ConfigParser
+from utils.config_parser import ConfigParser
 
 parser = ConfigParser('bot/config.yaml',
                       'bot/hide_config.yaml')
