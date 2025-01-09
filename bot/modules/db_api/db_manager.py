@@ -25,7 +25,7 @@ class DbManager():
         # get db conn params and log this if debug mode on
         self.db_conn_params = db_conn_params
         self.schema_name = schema_name
-        logger.debug(f'init user; db_conn_params:{self.db_conn_params}')
+        logger.debug(f'db_conn_params:{self.db_conn_params}')
     
     @staticmethod
     async def select_query_builder(columns: list[str] = ['1'], 
@@ -429,4 +429,4 @@ execute function main.fn_trg_{table_name}_delete();'''.strip())
         except Exception as e:
             logger.error(f'BAD TRY to insert data: {e}, with query: {query}')
             raise e
-        
+    
