@@ -4,7 +4,7 @@ from sqlalchemy import MetaData
 from datetime import datetime, timezone
 import uuid
 
-from db_instance import Base, MAIN_SCHEMA_NAME, WRITE_LOGS
+from .db_instance import Base, MAIN_SCHEMA_NAME, WRITE_LOGS
 
 class BaseObj():
     __abstract__ = True
@@ -14,7 +14,7 @@ class BaseObj():
                                                          onupdate=text("'UPD_DB_API_" + datetime.now(timezone.utc).strftime('%Y-%m-%d_%H:%M:%S')+"'"))
     sys_processed_dttm: Mapped[datetime] = mapped_column(server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-class User(Base, BaseObj):
+class UserOrm(Base, BaseObj):
     __tablename__       = 'user'
     __table_args__      = {'schema': MAIN_SCHEMA_NAME}
     
@@ -24,7 +24,7 @@ class User(Base, BaseObj):
     admin_flg:      Mapped[bool]  = mapped_column(default=False)
     
     
-class UserAccess(Base, BaseObj):
+class UserAccessOrm(Base, BaseObj):
     __tablename__       = 'user_access'
     __table_args__      = {'schema': MAIN_SCHEMA_NAME}
     

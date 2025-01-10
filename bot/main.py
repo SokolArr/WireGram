@@ -16,22 +16,17 @@ from aiogram import F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from models.user import User
-from utils.config_parser import ConfigParser
+from settings import settings
 
-parser = ConfigParser('bot/config.yaml',
-                      'bot/hide_config.yaml')
-TOKEN = parser.get_bot_config()['token']
-HOST = parser.get_three_xui_config()['host_url']
-USER_NAME = parser.get_three_xui_config()['user_name']
-PASSWORD = parser.get_three_xui_config()['password']
-DEBUG_MODE = parser.get_logging_config()['debug_mode']
+# vless_api = AsyncApi(host=settings.XUI_HOST, username=settings.XUI_USER, password=settings.XUI_PASS)
+bot_user = User()
+
+BOT_STARTED_DTTM = datetime.now(tz=timezone.utc)
 
 dp = Dispatcher()
-vless_api = AsyncApi(host=HOST, username=USER_NAME, password=PASSWORD)
-
-bot_user = User(vless_api=vless_api)
-bot_started_dttm = datetime.now(tz=timezone.utc)
-
+async def main() -> None:
+    bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))  
+    await dp.start_polling(bot)
 
 async def error_message(message: Message, exeption:str, err_code:int):
     if err_code == 1:
@@ -91,7 +86,7 @@ def get_menu_btn(user_id):
     
 @dp.callback_query(F.data.startswith("menu_btn"))
 async def menu_btn_handler(call: types.CallbackQuery):
-    if call.message.date > bot_started_dttm:
+    if call.message.date > BOT_STARTED_DTTM:
         call_data = call.data.split('__')
         call_tag = call_data[0]
         user_id = call_data[1]
@@ -154,7 +149,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
     
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
-    if message.date > bot_started_dttm:
+    if message.date > BOT_STARTED_DTTM:
         logging.info(f'user {message.from_user.id} just started dialog!')
         
         try:
@@ -171,7 +166,7 @@ async def command_start_handler(message: Message) -> None:
             
 @dp.message(Command(commands=['join']))
 async def command_start_handler(message: Message) -> None:
-    if message.date > bot_started_dttm:
+    if message.date > BOT_STARTED_DTTM:
         logging.info(f'user {message.from_user.id} wanted to join!')
         try:
             (acсess, valid_to_date) = await get_bot_access(message.from_user.id)
@@ -189,7 +184,7 @@ async def command_start_handler(message: Message) -> None:
                  
 @dp.message(Command(commands=['menu']))
 async def command_start_handler(message: Message) -> None:
-    if message.date > bot_started_dttm:
+    if message.date > BOT_STARTED_DTTM:
         try:
             (acсess, _) = await get_bot_access(message.from_user.id)
             if acсess:                
@@ -198,14 +193,9 @@ async def command_start_handler(message: Message) -> None:
         except Exception as e:
             await error_message(message, e, 1)
                        
-async def main() -> None:
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))  
-    await dp.start_polling(bot)
-    
-
 if __name__ == "__main__":
     logger = logging.getLogger()    
-    logger.setLevel(logging.DEBUG) if DEBUG_MODE else logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG) if settings.DEBUG_MODE else logger.setLevel(logging.INFO)
     formatter = logging.Formatter('[%(asctime)s]-[%(name)s]-%(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     
     #file_handler
