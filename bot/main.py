@@ -9,13 +9,15 @@ from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 
 from aiogram import F
 
 from models.user import User
 from models.admin import Admin
 from modules.db_api.manager import DbManager
-from modules.db_api.models import UserStruct
+from modules.db_api.models import UserStruct, UserReqAccessStruct
 from settings import settings
 
 BOT_STARTED_DTTM = datetime.now(tz=timezone.utc)
@@ -29,7 +31,6 @@ dp = Dispatcher()
 
 async def main() -> None:
     # dbm.create_db()
-    # await User(UserStruct).test()
     
     if DbManager().check_db_available():
         logger.info('------------------BOT_STARTED------------------\n')
@@ -70,13 +71,13 @@ async def send_new_bot_request_message(message: Message, user_data: UserStruct):
          
          
 # Message data 
-def get_requests_message(data, schema: list, max_length: int=1024):
+def get_requests_message(request, schema: list, max_length: int=1024):
     mess = ''
-    for row_id in range(len(data)):
+    for row_id in range(len(request)):
         mess += f'{html.bold(str(row_id + 1))}. '
-        for col_id in range(len(data[row_id])):
+        for col_id in range(len(request[row_id])):
             mess += (f'{schema[col_id]}: '+ 
-                     f'{"@" if schema[col_id]=="user_tag" and data[row_id][col_id] else ""}{data[row_id][col_id]}' 
+                     f'{"@" if schema[col_id]=="user_tag" and request[row_id][col_id] else ""}{request[row_id][col_id]}' 
                      + ', ')
         mess += '\n\n'
     return mess[:max_length]
@@ -142,6 +143,45 @@ def get_admin_menu_back_btn(user_tg_code):
                                 )]
     ]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
+
+def get_admin_choose_keyboard(user_tg_code, data: list[tuple]):
+    
+    new_data = []
+    # user_tg_code,
+    # user_tag,
+    # req_access_name,
+    # sys_processed_dttm
+    
+    for row_id in range(len(data)):
+        new_data.append(
+                {
+                    'row_id': row_id,
+                    'user_tg_code': data[row_id][0],
+                    'req_access_name': data[row_id][2]
+                })
+    
+    ikb = []
+    
+    builder = InlineKeyboardBuilder()
+ 
+    for el in new_data:
+        builder.row(InlineKeyboardButton(text=f" ✅ Принять #{el['row_id'] + 1} - {el['user_tg_code']}", 
+                                            callback_data=(f'admin_btn_ch_a' + '__' + 
+                                                            user_tg_code + '__' + 
+                                                            el['user_tg_code'] + '__' + el['req_access_name']
+                                            ))
+                   ,InlineKeyboardButton(text=f"⛔️ Отклонить #{el['row_id'] + 1} - {el['user_tg_code']}", 
+                                            callback_data=(f'admin_btn_ch_d' + '__' + 
+                                                            user_tg_code + '__' + 
+                                                            el['user_tg_code'] +'__' + el['req_access_name']
+                                            ))
+        )
+    builder.row(
+        InlineKeyboardButton(text="⬅️ Вернуться в админ-меню", 
+                                callback_data=(f'admin_btn_back_menu'+ '__' + user_tg_code)
+                                )
+    )
+    return builder
 
 def get_menu_back_renew_keyboard(user_tg_code):
     ikb = [
@@ -271,6 +311,12 @@ async def admin_btn_handler(call: types.CallbackQuery):
     if call.message.date > BOT_STARTED_DTTM:
         call_data = call.data.split('__') # <button_tag>__<user_tg_code>
         button_tag = call_data[0]
+        choosen_user_tg_code = None
+        choosen_request_access_name = None
+        if len(call_data) > 3:
+            choosen_user_tg_code = call_data[2]
+            choosen_request_access_name = call_data[3]
+        
         admins = await Admin().get_admins_tg_code()
         user_data = UserStruct(
             user_tg_code = call_data[1],
@@ -283,19 +329,49 @@ async def admin_btn_handler(call: types.CallbackQuery):
                 access = response['access']
                 if access and user_data.admin_flg:
                     if button_tag == 'admin_btn_req_bot':
-                        vpn_requests_data = await Admin().get_bot_requests()
+                        requests_data = await Admin().get_bot_requests()
+                        rows_qty = 3
+                        data = requests_data[:rows_qty]
                                                 
                         schema = ['user_tg_code', 'user_tag', 'access_name', 'processed_dttm']
-                        await call.message.edit_text(f"Запросы BOT:\n{get_requests_message(vpn_requests_data, schema)}", reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                        await call.message.edit_text(f"Запросы BOT:\n{get_requests_message(requests_data, schema)}", 
+                                                     reply_markup=get_admin_choose_keyboard(user_data.user_tg_code, data).as_markup())
                         
                     elif button_tag == 'admin_btn_req_vpn':
-                        vpn_requests_data = await Admin().get_vpn_requests()
-                        
+                        requests_data = await Admin().get_vpn_requests()
+                        rows_qty = 3
+                        data = requests_data[:rows_qty]
+
                         schema = ['user_tg_code', 'user_tag', 'access_name', 'processed_dttm']
-                        await call.message.edit_text(f"Запросы VPN:\n{get_requests_message(vpn_requests_data, schema)}", reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                        await call.message.edit_text(f"Запросы VPN:\n{get_requests_message(requests_data, schema)}", 
+                                                     reply_markup=get_admin_choose_keyboard(user_data.user_tg_code, data).as_markup())
                     
                     elif (button_tag == 'admin_btn_back_menu') or (button_tag == 'admin_btn_secret_menu'):
                         await call.message.edit_text(f"Вот, что я могу для тебя сделать:\n", reply_markup=get_admin_menu_keyboard(user_data))
+                     
+                    elif button_tag == 'admin_btn_ch_a':
+                        if choosen_request_access_name == 'VPN':
+                            resp = await Admin().accept_user_vpn_request(choosen_user_tg_code)
+                            if resp:
+                                if resp['affected'] > 0  or resp['updated'] > 0:
+                                    await call.message.edit_text(f'Принял запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                                else:
+                                    await call.message.edit_text(f'Ничего не сделал: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                            else:
+                                await call.message.edit_text(f'Ошибка принять запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                        
+                        if choosen_request_access_name == 'BOT':
+                            resp = await Admin().accept_user_bot_request(choosen_user_tg_code)
+                            if resp:
+                                if resp['affected'] > 0  or resp['updated'] > 0:
+                                    await call.message.edit_text(f'Принял запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                                else:
+                                    await call.message.edit_text(f'Ничего не сделал: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                            else:
+                                await call.message.edit_text(f'Ошибка принять запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
+                                
+                    elif button_tag == 'admin_btn_ch_d':
+                        await call.message.edit_text(f'Отклонил запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_tg_code))
                      
         except Exception as e:
                 await error_message(call.message, e, 1)

@@ -9,6 +9,8 @@ import enum
 MAIN_SCHEMA_NAME = settings.DB_main_schema_name
 WRITE_LOGS = settings.WRITE_LOGS
 
+MONTH_TIME_DELTA = 30
+
 class Fold(enum.Enum):
     pass
 

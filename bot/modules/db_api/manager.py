@@ -1,15 +1,19 @@
 import uuid
 import logging
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, insert, update, delete, and_, text, Sequence
 from sqlalchemy.orm import aliased, MappedColumn
 
-from .db_instance import Base, sync_engine, async_engine, session_factory, async_session_factory, WRITE_LOGS, MAIN_SCHEMA_NAME
+from .db_instance import Base, sync_engine, async_engine, session_factory, async_session_factory, WRITE_LOGS, MAIN_SCHEMA_NAME, MONTH_TIME_DELTA
 from .models import UserStruct, UserAccessStruct, UserReqAccessStruct, UserOrderStruct
 
 logger = logging.getLogger(name=__name__+'.py')
 
 class DbManager():
+    
+    MONTH_TIME_DELTA = MONTH_TIME_DELTA
+    
     def create_db(self):
         sync_engine.echo = False
         Base.metadata.drop_all(sync_engine)
@@ -266,18 +270,82 @@ class DbManager():
             res_obj = res.one_or_none()
             return res_obj[0] if res_obj is not None else res_obj
         
+
+    async def accept_request_by_user_tg_code_request_name(self, user_tg_code: str, access_name: str):
+        user: UserStruct = await self.get_user_by_tg_code(user_tg_code)
+        user_id = user.user_id
+        if user:
+            access = UserAccessStruct(
+                    user_id = user.user_id,
+                    access_name = access_name,
+                    access_from_dttm = datetime.now(),
+                    access_to_dttm = datetime.now() + timedelta(self.MONTH_TIME_DELTA)
+            )
+            if await self.get_access_by_user_id_access_name(user.user_id, access_name) == None:
+                async with async_session_factory() as session:
+                    q_del = (
+                            delete(UserReqAccessStruct)
+                            .where(and_(UserReqAccessStruct.user_id == user_id, 
+                                        UserReqAccessStruct.req_access_name == access_name
+                            ))
+                        )
+                    res_del = await session.execute(q_del)
+                    rows_del_count = res_del.rowcount
+                    await self.add_access(access)
+                    await session.commit()
+                    return (rows_del_count, -1)
+            else:
+                async with async_session_factory() as session:
+                    q_del = (
+                        delete(UserReqAccessStruct)
+                        .where(and_(UserReqAccessStruct.user_id == user_id, 
+                                    UserReqAccessStruct.req_access_name == access_name
+                        ))
+                    )
+                    q_upd = (
+                        update(UserAccessStruct)
+                        .values(access_from_dttm = access.access_from_dttm,
+                                access_to_dttm = access.access_to_dttm)
+                        .where(and_(UserAccessStruct.user_id == user_id, 
+                                    UserAccessStruct.access_name == access_name
+                        ))
+                    )
+                    res_del = await session.execute(q_del)
+                    await session.flush()
+                    res_upd = await session.execute(q_upd)
+                    rows_del_count = res_del.rowcount
+                    rows_upd_ount = res_upd.rowcount
+                    await session.commit()
+                    return (rows_del_count, rows_upd_ount)
+
+        
     @staticmethod
-    async def delete_request_by_user_id_request_name(user_id: uuid.UUID, request_name: str) -> UserReqAccessStruct: 
+    async def delete_access_request_by_user_id_request_name(user_id: uuid.UUID, request_name: str): 
         async with async_session_factory() as session:
             q = (
                 delete(UserReqAccessStruct)
-                .where( and_(UserReqAccessStruct.user_id == user_id, 
+                .where(and_(UserReqAccessStruct.user_id == user_id, 
                              UserReqAccessStruct.req_access_name == request_name
                 ))
             )
             res = await session.execute(q)
-            res_obj = res.one_or_none()
-            return res_obj[0] if res_obj is not None else res_obj
+            await session.commit()
+            return res
+        
+    @staticmethod
+    async def update_request_by_user_id_request_name(user_id: uuid.UUID, access_name: str, new_user_access_struct: UserAccessStruct): 
+        async with async_session_factory() as session:
+            q = (
+                update(UserAccessStruct)
+                .values(access_from_dttm = new_user_access_struct.access_from_dttm,
+                        access_to_dttm = new_user_access_struct.access_to_dttm)
+                .where(and_(UserAccessStruct.user_id == user_id, 
+                             UserAccessStruct.access_name == access_name
+                ))
+            )
+            res = await session.execute(q)
+            await session.commit()
+            return res
     
     
     

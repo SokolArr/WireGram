@@ -1,19 +1,18 @@
 from modules.db_api.models import UserStruct, UserAccessStruct, UserReqAccessStruct
 from .user import User
 from modules.db_api import DbManager
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
 from settings import settings
 
 class Admin():
     dbm = DbManager()
-    main_admin_tg_code = settings.TG_ADMIN_ID
-    
-    MONTH_TIME_DELTA = timedelta(30)
+    MAIN_ADMIN_TG_CODE = settings.TG_ADMIN_ID
+    MONTH_TIME_DELTA = dbm.MONTH_TIME_DELTA
     
     async def get_admins_tg_code(self) -> list:
         admins = await self.dbm.get_admins()
-        tg_codes=[self.main_admin_tg_code,]
+        tg_codes=[self.MAIN_ADMIN_TG_CODE,]
         for admin in admins:
             tg_codes.append(admin.user_tg_code)      
         return list(set(tg_codes))
@@ -32,20 +31,58 @@ class Admin():
         requests = await self.dbm.get_requests_by_request_name('BOT')
         return requests
     
-    async def accept_user_bot_request(self, user_tg_code: str):
-        user: UserStruct = await self.dbm.get_user_by_tg_code(user_tg_code)
-        if user:
-            acess = UserAccessStruct(
-                user_id = user.user_id,
-                access_name = 'BOT',
-                access_from_dttm = datetime.now(),
-                access_to_dttm = datetime.now() + self.MONTH_TIME_DELTA  
-            )
-            self.dbm.add_access(acess)
-            #TODO del from request
-            return user_tg_code
+    # async def accept_user_bot_request(self, user_tg_code: str):
+    #     access_name = 'BOT'
+    #     user: UserStruct = await self.dbm.get_user_by_tg_code(user_tg_code)
+    #     if user:
+    #         access = UserAccessStruct(
+    #                 user_id = user.user_id,
+    #                 access_name = access_name,
+    #                 access_from_dttm = datetime.now(),
+    #                 access_to_dttm = datetime.now() + self.MONTH_TIME_DELTA  
+    #         )
+    #         if await self.dbm.get_access_by_user_id_access_name(user.user_id, access_name) == None:
+    #             res = await self.dbm.delete_access_request_by_user_id_request_name(user.user_id, access_name)
+    #             await self.dbm.add_access(access)
+    #             return user_tg_code
+    #         else:
+    #             res = await self.dbm.delete_access_request_by_user_id_request_name(user.user_id, access_name)
+    #             await self.dbm.update_request_by_user_id_request_name(user.user_id, access_name, access)
+    #             return user_tg_code
         
+    # async def accept_user_vpn_request(self, user_tg_code: str):
+    #     access_name = 'VPN'
+    #     user: UserStruct = await self.dbm.get_user_by_tg_code(user_tg_code)
+    #     if user:
+    #         access = UserAccessStruct(
+    #                 user_id = user.user_id,
+    #                 access_name = access_name,
+    #                 access_from_dttm = datetime.now(),
+    #                 access_to_dttm = datetime.now() + self.MONTH_TIME_DELTA  
+    #         )
+    #         if await self.dbm.get_access_by_user_id_access_name(user.user_id, access_name) == None:
+    #             res = await self.dbm.delete_access_request_by_user_id_request_name(user.user_id, access_name)
+    #             await self.dbm.add_access(access)
+    #             return user_tg_code
+    #         else:
+    #             res = await self.dbm.delete_access_request_by_user_id_request_name(user.user_id, access_name)
+    #             await self.dbm.update_request_by_user_id_request_name(user.user_id, access_name, access)
+    #             return user_tg_code
     
-    async def accept_user_vpn_request():
-        pass
-    
+    async def accept_user_bot_request(self, user_tg_code: str):
+        access_name = 'BOT'
+        resp = await self.dbm.accept_request_by_user_tg_code_request_name(user_tg_code, access_name)
+        if resp:
+            return {
+                'affected': resp[0],
+                'updated': resp[1]
+            }
+        
+    async def accept_user_vpn_request(self, user_tg_code: str):
+        access_name = 'VPN'
+        resp = await self.dbm.accept_request_by_user_tg_code_request_name(user_tg_code, access_name)
+        if resp:
+            return {
+                'affected': resp[0],
+                'updated': resp[1]
+            }
