@@ -243,7 +243,6 @@ async def menu_btn_handler(call: types.CallbackQuery):
                         pass
               
                     elif button_tag == 'menu_btn_renew_vpn_access':
-                        await call.message.edit_text(f"{button_tag}",reply_markup=get_menu_back_btn(user_data.user_tg_code))
                         resp = await User(user_data).make_new_vpn_request_access()
                         if resp:
                             await call.message.edit_text(f"Запрос направил!",reply_markup=get_menu_back_btn(user_data.user_tg_code))

@@ -145,11 +145,11 @@ class User:
         access1 = UserAccessStruct(user_id=uuid.uuid5(uuid.NAMESPACE_DNS, '452369170'), access_name='BOT', 
                                 access_from_dttm=datetime(2024, 1, 1, 0, 0, 0), access_to_dttm=datetime(2025, 1, 1, 0, 0, 0))
         
-        access2 = UserAccessStruct(user_id=uuid.uuid5(uuid.NAMESPACE_DNS, '452369170'), access_name='VPN', 
+        access2 = UserAccessStruct(user_id=uuid.uuid5(uuid.NAMESPACE_DNS, '315339442'), access_name='BOT', 
                                 access_from_dttm=datetime(2024, 1, 1, 0, 0, 0), access_to_dttm=datetime(2027, 1, 1, 0, 0, 0))
         
-        await self.dbm.add_access(access1)
-        # await db.add_access(access2)
+        # await self.dbm.add_access(access1)
+        await self.dbm.add_access(access2)
         
         # order = UserOrderStruct(
         #     order_id = uuid.uuid5(uuid.NAMESPACE_DNS, '1234567'+'1234567'),
