@@ -1,40 +1,159 @@
 from modules.db_api import DbManager
-from modules.db_api.models import UserOrm
+from modules.db_api.models import UserStruct, UserOrderStruct, UserReqAccessStruct, UserAccessStruct
 import logging, sys, asyncio, uuid
+from datetime import datetime, timedelta, timezone
+
+from modules.three_xui_api import VlessClientApi, VlessInboundApi
 
 class User:
-    pass
+    dbm = DbManager()
+    
+    def __init__(self, user: UserStruct):
+      self.user: UserStruct = user
+      
+    def __repr__(self):
+        return self.user.__repr__()
+    
+    async def add_new_user(self):
+        check_user_tg_code = self.user.user_tg_code
+        resp_user = await self.dbm.get_user_by_tg_code(check_user_tg_code)
+        if resp_user is not None:
+            logging.debug(f'USER: {check_user_tg_code} ALREADY EXIST')
+        else:
+            new_user = UserStruct(
+                user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(check_user_tg_code)),
+                user_tg_code = self.user.user_tg_code,
+                user_name = self.user.user_name,
+                user_tag = self.user.user_tag,
+                admin_flg = False
+            )
+            user_tg_code = await self.dbm.add_user(new_user)
+            return user_tg_code
+    
+    async def make_new_bot_request_access(self):
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:    
+            bot_request_access: UserReqAccessStruct = await self.dbm.get_request_by_user_id_request_name(user.user_id, 'BOT')
+            if (user.user_id) and (bot_request_access is None):
+                user_tg_code = self.user.user_tg_code
+                req = UserReqAccessStruct(
+                    user_id = user.user_id,
+                    req_access_name = 'BOT'
+                )
+                await self.dbm.add_request(req)
+                return user_tg_code
+        else: 
+            return None
+        
+    async def get_bot_request_access(self):
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:    
+            request_access: UserReqAccessStruct = await self.dbm.get_request_by_user_id_request_name(user.user_id, 'BOT')
+            return request_access
+        
+    async def get_vpn_request_access(self):
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:    
+            request_access: UserReqAccessStruct = await self.dbm.get_request_by_user_id_request_name(user.user_id, 'VPN')
+            return request_access
+    
+    async def make_new_vpn_request_access(self):
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:
+            vpn_request_access: UserReqAccessStruct = await self.dbm.get_request_by_user_id_request_name(user.user_id, 'VPN')
+            if (user.user_id) and (vpn_request_access is None):
+                user_tg_code = self.user.user_tg_code
+                req = UserReqAccessStruct(
+                    user_id = user.user_id,
+                    req_access_name = 'VPN'
+                )
+                await self.dbm.add_request(req)
+                return user_tg_code
+        else: 
+            return None
+    
+    async def make_new_order(self):
+        pass
+    
+    async def check_bot_acess(self):
+        """return {
+            'access': True,
+            'dates': [access_from_dttm: <datetime>, access_to_dttm: <datetime>]
+        }"""
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:
+            access: UserAccessStruct = await self.dbm.get_access_by_user_id_access_name(user.user_id, 'BOT')
+            print(access, datetime.now())
+            if access:
+                if (access.access_from_dttm <= datetime.now()) and (access.access_to_dttm > datetime.now()):
+                    return {
+                        'access': True,
+                        'dates': [access.access_from_dttm, access.access_to_dttm]
+                    }
+                elif (access.access_to_dttm < datetime.now()):
+                    return {
+                        'access': False,
+                        'dates': [access.access_from_dttm, access.access_to_dttm]
+                    }
+            else: return None #no data in access table!
+                                
+    async def check_vpn_acess(self):
+        """return {
+            'access': True,
+            'dates': [<datetime>, <datetime>]
+        }"""
+        user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:
+            access: UserAccessStruct = await self.dbm.get_access_by_user_id_access_name(user.user_id, 'VPN')
+            if access:
+                if (access.access_from_dttm <= datetime.now()) and (access.access_to_dttm > datetime.now()):
+                    return {
+                        'access': True,
+                        'dates': [access.access_from_dttm, access.access_to_dttm]
+                    }
+                else:
+                    return {
+                        'access': False,
+                        'dates': [access.access_from_dttm, access.access_to_dttm]
+                    }
 
-
-async def test():
-    db = DbManager()
-    db.create_db()
-    await db.init_admins([{
-            'user_tg_code': '12345', 
-            'user_name': 'your_name'
-        },{
-            'user_tg_code': '54321', 
-            'user_name': 'your_name2'
-        }])
+    async def get_or_create_conn_config(self):
+        main_inbound_id = await VlessInboundApi().get_inbounds_id_by_remark('main')
+        await VlessClientApi().make_vless_client(main_inbound_id, self.user.user_tg_code,)
+        return await VlessClientApi().get_vless_client_link_by_email(self.user.user_tg_code)
     
-    
-    resp = await db.add_new_user(UserOrm(user_id = uuid.uuid5(uuid.NAMESPACE_DNS, '1234567'),
-                user_tg_code = '1234567', 
-                user_name = 'Alex', 
-                admin_flg = False))
-    print(resp)
-    
-    resp = await db.upgrade_user('12345')
-    
-    print(resp.rowcount)
-       
-asyncio.run(test())
-
-if __name__ == "__main__":
-    logger = logging.getLogger()    
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('[%(asctime)s]-[%(name)s]-%(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    
-    #console_handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
+    async def test(self):
+    #     db = DbManager()
+    #     db.create_db()
+        
+    #     user_struct = UserStruct(
+    #                 user_id = uuid.uuid5(uuid.NAMESPACE_DNS, '1234567'),
+    #                 user_tg_code = '1234567', 
+    #                 user_name = 'Alex', 
+    #                 admin_flg = False)
+        
+        # user = User(user_struct)
+        
+        # await user.add_new_user()
+        
+        # await user.make_new_bot_request()
+        
+        # await user.make_new_vpn_request()
+        access1 = UserAccessStruct(user_id=uuid.uuid5(uuid.NAMESPACE_DNS, '452369170'), access_name='BOT', 
+                                access_from_dttm=datetime(2024, 1, 1, 0, 0, 0), access_to_dttm=datetime(2025, 1, 1, 0, 0, 0))
+        
+        access2 = UserAccessStruct(user_id=uuid.uuid5(uuid.NAMESPACE_DNS, '452369170'), access_name='VPN', 
+                                access_from_dttm=datetime(2024, 1, 1, 0, 0, 0), access_to_dttm=datetime(2027, 1, 1, 0, 0, 0))
+        
+        await self.dbm.add_access(access1)
+        # await db.add_access(access2)
+        
+        # order = UserOrderStruct(
+        #     order_id = uuid.uuid5(uuid.NAMESPACE_DNS, '1234567'+'1234567'),
+        #     order_status = 'CREATED',
+        #     user_id = uuid.uuid5(uuid.NAMESPACE_DNS, '1234567'),
+        #     order_payload = "{'key': 'value'}"   
+        # )
+        # await db.add_order(order)
+        
+    # asyncio.run(test())

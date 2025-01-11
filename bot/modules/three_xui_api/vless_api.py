@@ -3,9 +3,13 @@ import logging
 
 from py3xui import AsyncApi, Inbound, Client
 from py3xui.inbound import Inbound, Settings, Sniffing, StreamSettings
+from py3xui import AsyncApi
 
+from settings import settings
+
+VLESS_API = AsyncApi(host=settings.XUI_HOST, username=settings.XUI_USER, password=settings.XUI_PASS)
 class VlessInboundApi():
-    def __init__(self, api: AsyncApi):
+    def __init__(self, api: AsyncApi = VLESS_API):
       self.api: AsyncApi = api
       
     async def get_inbounds_data(self) -> list[dict]:
@@ -77,7 +81,7 @@ class VlessInboundApi():
                 raise e
                       
 class VlessClientApi():
-    def __init__(self, api: AsyncApi):
+    def __init__(self, api: AsyncApi = VLESS_API):
       self.api: AsyncApi = api
       
     async def make_vless_client(self, inbound_id:int, client_email:str='default') -> str:

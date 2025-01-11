@@ -14,21 +14,38 @@ class BaseObj():
                                                          onupdate=text("'UPD_DB_API_" + datetime.now(timezone.utc).strftime('%Y-%m-%d_%H:%M:%S')+"'"))
     sys_processed_dttm: Mapped[datetime] = mapped_column(server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-class UserOrm(Base, BaseObj):
+class UserStruct(Base, BaseObj):
     __tablename__       = 'user'
     __table_args__      = {'schema': MAIN_SCHEMA_NAME}
     
     user_id:        Mapped[uuid.UUID]  = mapped_column(types.Uuid)
     user_tg_code:   Mapped[str]   = mapped_column(primary_key=True)
     user_name:      Mapped[str]   = mapped_column(server_default=text("'NO_USER_NAME'"))
+    user_tag:       Mapped[str]   = mapped_column(server_default=text("'NO_USER_TAG'"))
     admin_flg:      Mapped[bool]  = mapped_column(default=False)
     
     
-class UserAccessOrm(Base, BaseObj):
+class UserAccessStruct(Base, BaseObj):
     __tablename__       = 'user_access'
     __table_args__      = {'schema': MAIN_SCHEMA_NAME}
     
-    user_id:            Mapped[int]    = mapped_column(primary_key=True)
+    user_id:            Mapped[uuid.UUID]  = mapped_column(types.Uuid, primary_key=True)
     access_name:        Mapped[str]    = mapped_column(primary_key=True)
-    access_from_dttm:   Mapped[str]    = mapped_column()
-    access_to_dttm:     Mapped[bool]   = mapped_column()
+    access_from_dttm:   Mapped[datetime]    = mapped_column()
+    access_to_dttm:     Mapped[datetime]   = mapped_column()
+
+class UserReqAccessStruct(Base, BaseObj):
+    __tablename__       = 'user_req_access'
+    __table_args__      = {'schema': MAIN_SCHEMA_NAME}
+    
+    user_id:            Mapped[uuid.UUID]  = mapped_column(types.Uuid, primary_key=True)
+    req_access_name:    Mapped[str]        = mapped_column(primary_key=True)
+
+class UserOrderStruct(Base, BaseObj):
+    __tablename__       = 'user_order'
+    __table_args__      = {'schema': MAIN_SCHEMA_NAME}
+    
+    order_id:        Mapped[uuid.UUID]  = mapped_column(types.Uuid, primary_key=True)
+    order_status:    Mapped[str]        = mapped_column(primary_key=True)
+    user_id:         Mapped[uuid.UUID]  = mapped_column(types.Uuid)
+    order_payload:   Mapped[str]        = mapped_column()

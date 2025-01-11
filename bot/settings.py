@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     DEBUG_MODE: bool
     
     BOT_TOKEN: str
+    TG_ADMIN_ID: str
     
     DB_HOST: str
     DB_PORT: int
