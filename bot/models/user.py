@@ -30,6 +30,9 @@ class User:
             user_tg_code = await self.dbm.add_user(new_user)
             return user_tg_code
     
+    async def get_user(self):
+        return await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
+    
     async def make_new_bot_request_access(self):
         user: UserStruct = await self.dbm.get_user_by_tg_code(self.user.user_tg_code)
         if user:    

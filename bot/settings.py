@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DEBUG_MODE: bool
+    WRITE_LOGS: bool
     
     BOT_TOKEN: str
     TG_ADMIN_ID: str
@@ -30,10 +31,6 @@ class Settings(BaseSettings):
     @property
     def DB_main_schema_name(self) -> str:
         return 'main'
-    
-    @property
-    def DB_write_logs(self) -> str:
-        return True
     
     model_config = SettingsConfigDict(env_file=".env")
     

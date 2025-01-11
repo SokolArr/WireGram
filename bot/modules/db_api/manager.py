@@ -124,26 +124,18 @@ class DbManager():
             return False
         
     @staticmethod
-    async def init_admins(admins: list[dict]):
-        """[{
-                'user_tg_code': '12345', 
-                'user_name': 'your_name'
-            },]
-        """
-        admins = [
-            {
-                'user_id': uuid.uuid5(uuid.NAMESPACE_DNS, user['user_tg_code']),
-                **user
-            }
-            for user in admins
-        ]
-        async with async_session_factory() as session:
-            result = await session.execute(
-                insert(UserStruct),
-                admins
-            )
-            await session.commit()
-            return result
+    async def init_admins(admins: list[str]):
+        # for admin in admins:
+        #     # user_tg_code 
+            
+        #     user = UserStruct(
+        #         user_id = uuid.uuid5(uuid.NAMESPACE_DNS, )
+                
+        #     )
+        #     async with async_session_factory() as session:
+        #         session.add(UserStruct)
+        #         await session.commit()
+        pass #TODO rework list admins = lis[UserStruct]
         
     @staticmethod
     async def get_admins() -> tuple[UserStruct]: 

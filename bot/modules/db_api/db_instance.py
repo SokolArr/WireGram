@@ -7,7 +7,7 @@ from settings import settings
 import enum
 
 MAIN_SCHEMA_NAME = settings.DB_main_schema_name
-WRITE_LOGS = settings.DB_write_logs
+WRITE_LOGS = settings.WRITE_LOGS
 
 class Fold(enum.Enum):
     pass
