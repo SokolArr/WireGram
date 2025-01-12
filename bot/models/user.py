@@ -1,27 +1,26 @@
+import logging, uuid
+from pydantic import BaseModel
+
 from modules.db_api import DbManager
 from modules.db_api.manager import now_dttm
 from modules.db_api.models import UserStruct, UserOrderStruct, UserReqAccessStruct, UserAccessStruct
-import logging, sys, asyncio, uuid
-from datetime import datetime, timedelta, timezone
-from dotmap import DotMap
-
-from pydantic import BaseModel
-
-from .admin import Admin
 from modules.three_xui_api import VlessClientApi, VlessInboundApi
 
 dbm = DbManager()
 
 class UserAccessDataSchema(BaseModel):
     access: bool
-    dates: list[datetime]
+    dates: list
     
 class UserDataSchema(BaseModel):
     user: str
-    user_db_data: UserStruct
-    user_bot_access_data: UserAccessDataSchema
-    user_vpn_access_data: UserAccessDataSchema
-
+    user_db_data: UserStruct | None
+    user_bot_access_data: UserAccessDataSchema | None
+    user_vpn_access_data: UserAccessDataSchema | None
+    
+    class Config: #for UserStruct, UserAccessDataSchema
+        arbitrary_types_allowed = True
+    
 class User:
     def __init__(self, user: UserStruct = None):
       self.user: UserStruct = user
@@ -44,6 +43,49 @@ class User:
             )
             user_tg_code = await dbm.add_user(new_user)
             return user_tg_code
+        
+    @staticmethod
+    async def validate_bot_access(user_tg_code: str):
+        user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
+        user_bot_access_data = None
+        user_vpn_access_data = None
+        if user:
+            # BOT access:
+            user_bot_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'BOT')
+            if user_bot_access:
+                
+                if (user_bot_access.access_from_dttm <= now_dttm()) and (user_bot_access.access_to_dttm > now_dttm()):
+                    user_bot_access_data = UserAccessDataSchema(
+                        access = True,
+                        dates = [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
+                    )
+                elif (user_bot_access.access_to_dttm < now_dttm()):
+                    user_bot_access_data = UserAccessDataSchema(
+                        access = False,
+                        dates = [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
+                    )
+                    
+            # VPN access:
+            user_vpn_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'VPN')
+            if user_vpn_access:
+                
+                if (user_vpn_access.access_from_dttm <= now_dttm()) and (user_vpn_access.access_to_dttm > now_dttm()):
+                    user_vpn_access_data = UserAccessDataSchema(
+                        access = True,
+                        dates = [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]
+                    )
+                elif (user_bot_access.access_to_dttm < now_dttm()):
+                    user_vpn_access_data = UserAccessDataSchema(
+                        access = False,
+                        dates = [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]
+                    )
+        user_data = UserDataSchema(
+            user = user_tg_code,
+            user_db_data = user,
+            user_bot_access_data = user_bot_access_data,
+            user_vpn_access_data = user_vpn_access_data
+        )
+        return user_data
     
     async def get(self):
         return await dbm.get_user_by_tg_code(self.user.user_tg_code)
@@ -61,8 +103,7 @@ class User:
                 return True
             else:
                 return False
-                
-        
+                  
     async def get_bot_request_access(self):
         user: UserStruct = await dbm.get_user_by_tg_code(self.user.user_tg_code)
         if user:    
@@ -140,48 +181,6 @@ class User:
         await VlessClientApi().make_vless_client(main_inbound_id, self.user.user_tg_code,)
         return await VlessClientApi().get_vless_client_link_by_email(self.user.user_tg_code)
 
-    @staticmethod
-    async def validate_bot_access(user_tg_code: str):
-        user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
-        user_bot_access_data = None
-        user_vpn_access_data = None
-        if user:
-            # BOT access:
-            user_bot_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'BOT')
-            if user_bot_access:
-                
-                if (user_bot_access.access_from_dttm <= now_dttm()) and (user_bot_access.access_to_dttm > now_dttm()):
-                    user_bot_access_data = {
-                        'access': True,
-                        'dates': [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
-                    }
-                elif (user_bot_access.access_to_dttm < now_dttm()):
-                    user_bot_access_data = {
-                        'access': False,
-                        'dates': [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
-                    }
-                    
-            # VPN access:
-            user_vpn_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'VPN')
-            if user_vpn_access:
-                
-                if (user_vpn_access.access_from_dttm <= now_dttm()) and (user_vpn_access.access_to_dttm > now_dttm()):
-                    user_vpn_access_data = {
-                        'access': True,
-                        'dates': [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]
-                    }
-                elif (user_bot_access.access_to_dttm < now_dttm()):
-                    user_vpn_access_data = {
-                        'access': False,
-                        'dates': [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]
-                    }
-  
-        user_data = DotMap({
-            'user': user_tg_code,
-            'user_db_data': user,
-            'user_bot_access_data': user_bot_access_data,
-            'user_vpn_access_data': user_vpn_access_data
-        })
-        return user_data
+    
 
 

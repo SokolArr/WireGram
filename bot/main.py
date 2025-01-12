@@ -15,7 +15,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from aiogram import F
 
-from models.user import User
+from models.user import User, UserDataSchema, UserAccessDataSchema
 from models.admin import Admin
 from modules.db_api.manager import DbManager
 from modules.db_api.models import UserStruct, UserReqAccessStruct
@@ -63,11 +63,11 @@ def get_requests_message(request, schema: list, max_length: int=1024):
         mess += '\n\n'
     return mess[:max_length]
     
-async def send_request_message_to_admins(user_data: UserStruct, access_name: str, admins: list = None):
+async def send_request_message_to_admins(user_db_data: UserStruct, access_name: str, admins: list = None):
     if admins == None:
         admins = await Admin().get_admins_tg_code()
     for admin in admins:
-        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}Пользователь {user_data.user_tg_code}, @{user_data.user_tag} запросил доступ к {access_name}')
+        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}Пользователь {user_db_data.user_tg_code}, @{user_db_data.user_tag} запросил доступ к {access_name}')
 
 
 # Keyboards    
@@ -178,7 +178,7 @@ def get_menu_btn(user_data: UserStruct):
 async def menu_btn_handler(call: types.CallbackQuery):
     if call.message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(call.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(call.from_user.id))
             call_data = call.data.split('__') # <button_tag>__<user_tg_code>
             button_tag = call_data[0]
             
@@ -267,7 +267,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
 async def admin_btn_handler(call: types.CallbackQuery):
     if call.message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(call.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(call.from_user.id))
             call_data = call.data.split('__') # <button_tag>__<user_tg_code>
             button_tag = call_data[0]
             choosen_user_tg_code = None
@@ -363,7 +363,7 @@ async def command_start_handler(message: Message) -> None:
 async def command_start_handler(message: Message) -> None:
     if message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(message.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(message.from_user.id))
             if user_data.user_db_data:
                 if user_data.user_bot_access_data:
                     if user_data.user_bot_access_data.access:
@@ -386,7 +386,7 @@ async def command_start_handler(message: Message) -> None:
 async def command_start_handler(message: Message) -> None:
     if message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(message.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(message.from_user.id))
             if user_data.user_db_data:
                 if user_data.user_bot_access_data:
                     if user_data.user_bot_access_data.access:
@@ -405,7 +405,7 @@ async def command_start_handler(message: Message) -> None:
 async def command_start_handler(message: Message) -> None:
     if message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(message.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(message.from_user.id))
             if user_data.user_db_data:
                 if user_data.user_bot_access_data:
                     # detect old user
@@ -440,7 +440,7 @@ async def command_start_handler(message: Message) -> None:
 async def command_start_handler(message: Message) -> None:
     if message.date > BOT_STARTED_DTTM:
         try:
-            user_data: DotMap = await User.validate_bot_access(message.from_user.id)
+            user_data: UserDataSchema = await User.validate_bot_access(str(message.from_user.id))
             if user_data.user_db_data:
                 if user_data.user_bot_access_data:
                     if user_data.user_bot_access_data.access and user_data.user_db_data.admin_flg:
