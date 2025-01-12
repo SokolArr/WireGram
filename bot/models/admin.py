@@ -1,5 +1,4 @@
 from modules.db_api.models import UserStruct, UserAccessStruct, UserReqAccessStruct
-from .user import User
 from modules.db_api import DbManager
 from datetime import datetime, timedelta
 

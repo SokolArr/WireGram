@@ -270,7 +270,6 @@ class DbManager():
             res_obj = res.one_or_none()
             return res_obj[0] if res_obj is not None else res_obj
         
-
     async def accept_request_by_user_tg_code_request_name(self, user_tg_code: str, access_name: str):
         user: UserStruct = await self.get_user_by_tg_code(user_tg_code)
         user_id = user.user_id
@@ -317,8 +316,7 @@ class DbManager():
                     rows_upd_ount = res_upd.rowcount
                     await session.commit()
                     return (rows_del_count, rows_upd_ount)
-
-        
+   
     @staticmethod
     async def delete_access_request_by_user_id_request_name(user_id: uuid.UUID, request_name: str): 
         async with async_session_factory() as session:
