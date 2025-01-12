@@ -1,6 +1,6 @@
-from modules.db_api.models import UserStruct, UserAccessStruct, UserReqAccessStruct
+from modules.db_api.models import UserStruct, UserAccessStruct, UserReqAccessStruct, UserOrderStruct
 from modules.db_api import DbManager
-from modules.db_api.manager import ReturnCodes
+from modules.db_api.manager import ReturnCodes, OrderStatus, OrderResponse
 from datetime import datetime, timedelta, timezone
 from modules.three_xui_api import VlessClientApi
 
@@ -55,8 +55,7 @@ class Admin():
                 'updated': resp[1]
             }
         
-    @staticmethod  
-    async def accept_user_vpn_request(user_tg_code: str):
+    async def accept_user_vpn_request(self, user_tg_code: str):
         new_time = datetime.now(timezone.utc) + timedelta(600)
         user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
         user_id = user.user_id
@@ -64,11 +63,12 @@ class Admin():
         try:
             vpn_resp = await VlessClientApi().update_client_expired_time(user_tg_code, new_time)
             db_resp = await dbm.accept_request_by_user_id_request_name(user_id, access_name)
-            if db_resp and vpn_resp:
+            order_resp = await self.accept_order(user_tg_code)
+            if db_resp and vpn_resp and (order_resp == OrderResponse.SUCCESS):
                 return {
                     'affected': db_resp[0],
                     'updated': db_resp[1]
-                }
+                }  
         except:
             pass
          
@@ -103,3 +103,21 @@ class Admin():
     @staticmethod          
     async def update_vless_time(user_tg_code: str, new_time = datetime.now(timezone.utc) + timedelta(600)):
         await VlessClientApi().update_client_expired_time(user_tg_code, new_time)
+        
+    @staticmethod   
+    async def accept_order(user_tg_code: str) -> str:
+        user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
+        if user:
+            payed_order: UserOrderStruct = await dbm.get_payed_order_by_user_id(user.user_id)
+            if payed_order:
+                order = UserOrderStruct(
+                    order_id = payed_order.order_id,
+                    order_status = OrderStatus.CLOSED.value
+                )
+                return_code = await dbm.update_order(order)
+                if return_code == ReturnCodes.SUCCESS:
+                    return OrderResponse.SUCCESS
+                else:
+                    return OrderResponse.BAD_TRY
+            else: 
+                return OrderResponse.PAYED_ORDER_NF

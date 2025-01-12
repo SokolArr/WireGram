@@ -18,7 +18,22 @@ class ReturnCodes(Enum):
     UNIQUE_VIOLATION        = -1
     FOREIGN_KEY_VIOLATION   = -2
     NOT_FOUND               = -3
+    NOT_MET_CONDITION       = -4
     DATABASE_ERROR          = -99
+    
+class OrderStatus(Enum):
+    NEW = 'NEW'
+    PAYED = 'PAYED'
+    CLOSED = 'CLOSED'
+    
+    
+class OrderResponse(Enum):
+    NEW_ORDER_EXIST = 'NEW_ORDER_EXIST'
+    NEW_ORDER_NF = 'NEW_ORDER_NF'
+    PAYED_ORDER_EXIST = 'PAYED_ORDER_EXIST'
+    PAYED_ORDER_NF = 'PAYED_ORDER_NF'
+    SUCCESS = 'SUCCESS'
+    BAD_TRY = 'BAD_TRY'
 
 class DBErrorHandler:
     @staticmethod
@@ -28,14 +43,14 @@ class DBErrorHandler:
             if e.orig:
                 err_message = str(e.orig.args[0])
             if 'UniqueViolationError' in err_message:
-                return ReturnCodes.UNIQUE_VIOLATION.value
+                return ReturnCodes.UNIQUE_VIOLATION
             elif 'ForeignKeyViolationError' in err_message:
-                return ReturnCodes.FOREIGN_KEY_VIOLATION.value
+                return ReturnCodes.FOREIGN_KEY_VIOLATION
             else:
                 print(f"Ошибка: {err_message}")
-                return ReturnCodes.DATABASE_ERROR.value
+                return ReturnCodes.DATABASE_ERROR
         else:
-            return ReturnCodes.DATABASE_ERROR.value
+            return ReturnCodes.DATABASE_ERROR
          
 def now_dttm():
     return datetime.now(timezone.utc).replace(tzinfo=None)
@@ -203,12 +218,86 @@ class DbManager():
         return new_user_tg_code
     
     @staticmethod
-    async def add_order(order: UserOrderStruct):  
-        async with async_session_factory() as session:
-            new_order_id = order.order_id
-            session.add(order)
-            await session.commit()
-        return new_order_id
+    async def add_order(order: UserOrderStruct):
+        try:
+            async with async_session_factory() as session:
+                session.add(order)
+                await session.commit()
+                return ReturnCodes.SUCCESS
+        except Exception as e:
+            return DBErrorHandler.handle_exception(e)
+        
+    @staticmethod
+    async def update_order(order: UserOrderStruct):
+        try:
+            async with async_session_factory() as session:
+                q = (
+                    update(UserOrderStruct)
+                    .values(order_status = order.order_status)
+                    .where(and_(UserOrderStruct.order_id == order.order_id))
+                )
+                res = await session.execute(q)
+
+                await session.commit()
+                if res.rowcount > 0:
+                    logger.debug(ReturnCodes.SUCCESS)
+                    return ReturnCodes.SUCCESS
+                else:
+                    logger.debug(ReturnCodes.NOT_FOUND)
+                    return ReturnCodes.NOT_FOUND
+        except Exception as e:
+            logger.debug(f'{e}{DBErrorHandler.handle_exception(e)}')
+            return DBErrorHandler.handle_exception(e)
+        
+    @staticmethod
+    async def get_new_order_by_user_id(user_id: uuid.UUID):
+        try:
+            async with async_session_factory() as session:
+                q = (
+                    select(UserOrderStruct)
+                    .select_from(UserOrderStruct)
+                    .where(and_(UserOrderStruct.user_id == user_id,
+                                UserOrderStruct.order_status == 'NEW'))
+                )
+                res = await session.execute(q)
+                res_obj = res.one()
+                return res_obj[0] if res_obj is not None else res_obj
+        except Exception:
+            pass
+
+    @staticmethod
+    async def get_payed_order_by_user_id(user_id: uuid.UUID):
+        try:
+            async with async_session_factory() as session:
+                q = (
+                    select(UserOrderStruct)
+                    .select_from(UserOrderStruct)
+                    .where(and_(UserOrderStruct.user_id == user_id,
+                                UserOrderStruct.order_status == 'PAYED'))
+                )
+                res = await session.execute(q)
+                res_obj = res.one()
+                return res_obj[0] if res_obj is not None else res_obj
+        except Exception:
+            pass
+    
+    @staticmethod
+    async def get_last_order_by_user_id(user_id: uuid.UUID):
+        try:
+            async with async_session_factory() as session:
+                q = (
+                    select(UserOrderStruct)
+                    .select_from(UserOrderStruct)
+                    .where(UserOrderStruct.user_id == user_id)
+                    .order_by(UserOrderStruct.sys_processed_dttm.desc())
+                    .limit(1)
+                )
+                res = await session.execute(q)
+                res_obj = res.one()
+                print(res_obj)
+                return res_obj[0] if res_obj is not None else res_obj
+        except Exception:
+            pass
     
     @staticmethod
     async def add_request(request_access: UserReqAccessStruct):  
@@ -219,7 +308,7 @@ class DbManager():
         return req_access_name
     
     @staticmethod
-    async def add_access(access: UserAccessStruct):  
+    async def add_access(access: UserAccessStruct) -> int:  
         try:
             async with async_session_factory() as session:
                 session.add(access)

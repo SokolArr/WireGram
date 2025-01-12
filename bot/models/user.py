@@ -1,8 +1,9 @@
 import logging, uuid
 from pydantic import BaseModel
+from enum import Enum
 
 from modules.db_api import DbManager
-from modules.db_api.manager import now_dttm
+from modules.db_api.manager import ReturnCodes, OrderStatus, OrderResponse, now_dttm
 from modules.db_api.models import UserStruct, UserOrderStruct, UserReqAccessStruct, UserAccessStruct
 from modules.three_xui_api import VlessClientApi, VlessInboundApi
 
@@ -20,7 +21,7 @@ class UserDataSchema(BaseModel):
     
     class Config: #for UserStruct, UserAccessDataSchema
         arbitrary_types_allowed = True
-    
+            
 class User:
     def __init__(self, user: UserStruct = None):
       self.user: UserStruct = user
@@ -131,8 +132,57 @@ class User:
         else: 
             return None
     
-    async def make_new_order(self):
-        pass
+    async def make_order(self):
+        user: UserStruct = await dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:
+            order_hash = str(user.user_tg_code) + now_dttm().strftime('%Y%m%d%H%M%S')
+            new_order: UserOrderStruct = await dbm.get_new_order_by_user_id(user.user_id)
+            if new_order:
+                return OrderResponse.NEW_ORDER_EXIST
+            elif await dbm.get_payed_order_by_user_id(user.user_id):
+                return OrderResponse.PAYED_ORDER_EXIST
+            else:
+                order = UserOrderStruct(
+                    order_id =  uuid.uuid5(uuid.NAMESPACE_DNS, order_hash),
+                    order_status = OrderStatus.NEW.value,
+                    user_id = user.user_id,
+                    order_payload = f'hash: {order_hash}'
+                )
+                return_code = await dbm.add_order(order)
+                if return_code == ReturnCodes.SUCCESS:
+                    return OrderResponse.SUCCESS
+                else:
+                    return OrderResponse.BAD_TRY
+            
+    async def make_new_order_pay(self):
+        user: UserStruct = await dbm.get_user_by_tg_code(self.user.user_tg_code)
+        if user:
+            new_order: UserOrderStruct = await dbm.get_new_order_by_user_id(user.user_id)
+            if new_order:
+                order = UserOrderStruct(
+                    order_id = new_order.order_id,
+                    order_status = OrderStatus.PAYED.value
+                )
+                return_code = await dbm.update_order(order)
+                if return_code == ReturnCodes.SUCCESS:
+                    return OrderResponse.SUCCESS
+                else:
+                    return OrderResponse.BAD_TRY   
+            elif await dbm.get_payed_order_by_user_id(user.user_id):
+                return OrderResponse.PAYED_ORDER_EXIST 
+            else: 
+                return OrderResponse.NEW_ORDER_NF
+       
+    async def get_order(self):
+            user: UserStruct = await dbm.get_user_by_tg_code(self.user.user_tg_code)
+            if user:
+                new_order: UserOrderStruct = await dbm.get_last_order_by_user_id(user.user_id)
+                if new_order:
+                    return new_order
+
+            
+        
+        
     
     async def check_bot_acess(self):
         """return {
