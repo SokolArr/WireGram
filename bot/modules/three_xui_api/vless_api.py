@@ -43,13 +43,13 @@ class VlessInboundApi():
                                         reality_settings={'show': False, 
                                                             'xver': 0, 
                                                             'dest': 'google.com:443', 
-                                                            'serverNames': ['google.com', 'www.google.com'], 
-                                                            'privateKey': '6I4kzk_zJU9l7kRFlIJBOjPbaz5CLLC6Mkl222oE82w', 
+                                                            'serverNames': ['www.google.com'], 
+                                                            'privateKey': 'GAiJD7L8ADep2NVcQPiuZc9l_ZxXTSCXmpVzPM6CdH8', 
                                                             'minClient': '', 
                                                             'maxClient': '', 
                                                             'maxTimediff': 0, 
-                                                            'shortIds': ['1'], 
-                                                            'settings': {'publicKey': 'Gy8ByVAgCO_KU78Q1jgWRjywfE5BPpTm5GNQSjrQij8', 'fingerprint': 'firefox', 'serverName': '', 'spiderX': '/'}}, 
+                                                            'shortIds': ['33cf5dbed8e1','60571c','6395f4e62e','b688d136','4b02','1d1ec1a2dc04de9e','11','db0a75113d6ea9'], 
+                                                            'settings': {'publicKey': '9WIrle9cM-dmkxvaYJEeytOnkHJCYoHojVQi-zg3_DI', 'fingerprint': 'firefox', 'serverName': '', 'spiderX': '/'}}, 
                                         xtls_settings={}, 
                                         tls_settings={})
             sniffing=Sniffing(enabled=True, 
@@ -133,7 +133,7 @@ class VlessClientApi():
                 ib_remark = inbound.remark
                 ib_network = inbound.stream_settings.network
                 ib_sec = inbound.stream_settings.security
-                ib_snif = inbound.stream_settings.reality_settings["dest"].split(":")[0]
+                ib_snif = inbound.stream_settings.reality_settings['serverNames'][0]
                 ib_sid = inbound.stream_settings.reality_settings["shortIds"][0]
                 ib_pbk = inbound.stream_settings.reality_settings["settings"]['publicKey']
                 ib_fp = inbound.stream_settings.reality_settings["settings"]['fingerprint']
