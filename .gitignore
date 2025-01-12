@@ -2,8 +2,9 @@ db_data/
 *test*
 *creds*
 db_init.sql
-
-
+*hide_config*
+myenv
+__old
 
 
 # Byte-compiled / optimized / DLL files
@@ -177,3 +178,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+bot/.DS_Store
