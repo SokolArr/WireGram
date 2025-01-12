@@ -1,2 +1,2 @@
-## WireGuard extension to control peers using telegram bot(async version)
+## Program-extension to control peers using telegram bot (async version)
 
