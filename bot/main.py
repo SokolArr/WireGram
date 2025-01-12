@@ -32,12 +32,14 @@ dp = Dispatcher()
 
 async def main() -> None:
     # dbm.create_db()
-    
-    if DbManager().check_db_available():
-        logger.info('------------------BOT_STARTED------------------\n')
-        await dp.start_polling(bot)
-    else:
-        raise Exception(f'NO DATABASE CONNECTION!!!')
+    try:
+        if DbManager().check_db_available():
+            logger.info('------------------BOT_STARTED------------------\n')
+            await dp.start_polling(bot)
+        else:
+            raise Exception(f'NO DATABASE CONNECTION!!!')
+    except:
+        pass
 
 # Helpers&Utils 
 async def error_message(message: Message, exeption:str, err_code:int):
@@ -61,17 +63,11 @@ def get_requests_message(request, schema: list, max_length: int=1024):
         mess += '\n\n'
     return mess[:max_length]
     
-def get_user_data_from_message(message: Message, admins: list):
-    return UserStruct(
-        user_tg_code = str(message.from_user.id),
-        user_name = message.from_user.full_name,
-        user_tag = message.from_user.username,
-        admin_flg = True if str(message.from_user.id) in admins else False
-    )
- 
-async def send_request_message_to_admins(user_data: UserStruct, admins: list):
+async def send_request_message_to_admins(user_data: UserStruct, access_name: str, admins: list = None):
+    if admins == None:
+        admins = await Admin().get_admins_tg_code()
     for admin in admins:
-        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}Пользователь {user_data.user_tg_code}, @{user_data.user_tag} запросил доступ к боту')
+        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}Пользователь {user_data.user_tg_code}, @{user_data.user_tag} запросил доступ к {access_name}')
 
 
 # Keyboards    
@@ -79,22 +75,11 @@ def get_menu_keyboard_by_user_data(user_data: UserStruct):
     user_tg_code = user_data.user_tg_code
     admin_flg = user_data.admin_flg
     
-    ikb = [
-            [InlineKeyboardButton(text="📊 Проверить остатки и баланс", 
-                                callback_data=('menu_btn_get_all_status__' + str(user_tg_code))
-                                )],
-            [InlineKeyboardButton(text="📄 Конфиг для подключения", 
-                                callback_data=('menu_btn_get_conf__' + str(user_tg_code))
-                                )],
-            [InlineKeyboardButton(text="✅ Продлить доступ", 
-                                callback_data=('menu_btn_renew_vpn_access__' + str(user_tg_code))
-                                )]
-        ]
+    ikb = [[InlineKeyboardButton(text="📊 Проверить остатки и баланс", callback_data=f'menu_btn_get_all_status__{user_data.user_tg_code}')],
+        [InlineKeyboardButton(text="📄 Конфиг для подключения", callback_data=f'menu_btn_get_conf__{user_data.user_tg_code}')],
+        [InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_renew_vpn_access__{user_data.user_tg_code}')]]
     if admin_flg:
-        ikb.append(
-            [InlineKeyboardButton(text="⚠️ АДМИН-МЕНЮ", 
-            callback_data=('admin_btn_secret_menu__' + str(user_tg_code))
-        )])
+        ikb.append([InlineKeyboardButton(text="⚠️ АДМИН-МЕНЮ", callback_data=f'admin_btn_secret_menu__{user_data.user_tg_code}')])
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
 def get_admin_menu_keyboard(user_data: UserStruct):
@@ -206,7 +191,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
                                 if user_data.user_vpn_access_data.access:
                                     await call.message.edit_text("🔎 Ушел искать...")
                                     try:
-                                        vless_conf = await User(user_data.user_db_data).get_or_create_conn_config()
+                                        vless_conf = await User(user_data.user_db_data).get_or_create_vless_config()
                                         await call.message.edit_text("Вот твой конфиг для подключения.\nCкопируй его нажатием на этот блок:\n"+html.pre(vless_conf))
                                         await call.message.answer("Вставь в приложение из буфера обмена.\nПриятного пользования 😃", reply_markup=get_menu_back_btn(user_data.user_db_data))
                                     except Exception as e:
@@ -255,6 +240,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
                             resp = await User(user_data.user_db_data).make_new_vpn_request_access()
                             if resp:
                                 await call.message.edit_text(f"Запрос направил!",reply_markup=get_menu_back_btn(user_data.user_db_data))
+                                await send_request_message_to_admins(user_data.user_db_data, 'VPN')
                             else:
                                 await call.message.edit_text(f"Запрос уже направлен",reply_markup=get_menu_back_btn(user_data.user_db_data))
 
@@ -322,7 +308,7 @@ async def admin_btn_handler(call: types.CallbackQuery):
                                     resp = await Admin().accept_user_vpn_request(choosen_user_tg_code)
                                     if resp:
                                         if resp['affected'] > 0  or resp['updated'] > 0:
-                                            await call.message.edit_text(f'Принял запрос от: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_db_data))
+                                                await call.message.edit_text(f'Принял запрос от: {choosen_user_tg_code}, {resp}', reply_markup=get_admin_menu_back_btn(user_data.user_db_data))
                                         else:
                                             await call.message.edit_text(f'Ничего не сделал: {choosen_user_tg_code}', reply_markup=get_admin_menu_back_btn(user_data.user_db_data))
                                     else:
@@ -360,7 +346,11 @@ async def command_start_handler(message: Message) -> None:
             )
             if add_res:
                 if is_message_user_admin:
-                    await message.answer(f"Приятно познакомиться, дорогой Админ, {html.bold(message.from_user.full_name)}. Посмотри что можно сделать в /menu")
+                    access_resp = await Admin.add_access(str(message.from_user.id))
+                    if access_resp:
+                        await message.answer(f"Приятно познакомиться, дорогой Админ, {html.bold(message.from_user.full_name)}. Посмотри что можно сделать в /menu")
+                    else:
+                        await message.answer(f"Ошибка добавления доступа")
                 else:
                     await message.answer(f"Приятно познакомиться, {html.bold(message.from_user.full_name)}! Посмотри что можно сделать в /menu")
             else:
@@ -425,7 +415,7 @@ async def command_start_handler(message: Message) -> None:
                         await message.answer(f"У тебя истекла подписка {user_data.user_bot_access_data.dates[1]}")
                         req_resp = await User(user_data.user_db_data).add_bot_access_request()
                         if req_resp:
-                            await send_request_message_to_admins(user_data.user_db_data)
+                            await send_request_message_to_admins(user_data.user_db_data, 'BOT')
                             await message.answer(f"Запросил доступ для тебя. Пожалуйста, дождись его одобрения или свяжись с администратором")
                         elif req_resp == False:
                             await message.answer("Пожалуйста, дождись одобрения доступа или свяжись с администратором")
@@ -435,7 +425,7 @@ async def command_start_handler(message: Message) -> None:
                     # detect new user                           
                     req_resp = await User(user_data.user_db_data).add_bot_access_request()
                     if req_resp:
-                        await send_request_message_to_admins(user_data.user_db_data)
+                        await send_request_message_to_admins(user_data.user_db_data, 'BOT')
                         await message.answer(f"Запросил доступ для тебя. Пожалуйста, дождись его одобрения или свяжись с администратором")
                     elif req_resp == False:
                         await message.answer(f"У тебя уже есть запрос на доступ!")

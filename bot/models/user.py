@@ -1,13 +1,26 @@
 from modules.db_api import DbManager
+from modules.db_api.manager import now_dttm
 from modules.db_api.models import UserStruct, UserOrderStruct, UserReqAccessStruct, UserAccessStruct
 import logging, sys, asyncio, uuid
 from datetime import datetime, timedelta, timezone
 from dotmap import DotMap
 
+from pydantic import BaseModel
+
 from .admin import Admin
 from modules.three_xui_api import VlessClientApi, VlessInboundApi
 
 dbm = DbManager()
+
+class UserAccessDataSchema(BaseModel):
+    access: bool
+    dates: list[datetime]
+    
+class UserDataSchema(BaseModel):
+    user: str
+    user_db_data: UserStruct
+    user_bot_access_data: UserAccessDataSchema
+    user_vpn_access_data: UserAccessDataSchema
 
 class User:
     def __init__(self, user: UserStruct = None):
@@ -89,12 +102,12 @@ class User:
         if user:
             access: UserAccessStruct = await dbm.get_access_by_user_id_access_name(user.user_id, 'BOT')
             if access:
-                if (access.access_from_dttm <= datetime.now()) and (access.access_to_dttm > datetime.now()):
+                if (access.access_from_dttm <= now_dttm()) and (access.access_to_dttm > now_dttm()):
                     return {
                         'access': True,
                         'dates': [access.access_from_dttm, access.access_to_dttm]
                     }
-                elif (access.access_to_dttm < datetime.now()):
+                elif (access.access_to_dttm < now_dttm()):
                     return {
                         'access': False,
                         'dates': [access.access_from_dttm, access.access_to_dttm]
@@ -110,7 +123,7 @@ class User:
         if user:
             access: UserAccessStruct = await dbm.get_access_by_user_id_access_name(user.user_id, 'VPN')
             if access:
-                if (access.access_from_dttm <= datetime.now()) and (access.access_to_dttm > datetime.now()):
+                if (access.access_from_dttm <= now_dttm()) and (access.access_to_dttm > now_dttm()):
                     return {
                         'access': True,
                         'dates': [access.access_from_dttm, access.access_to_dttm]
@@ -121,7 +134,8 @@ class User:
                         'dates': [access.access_from_dttm, access.access_to_dttm]
                     }
 
-    async def get_or_create_conn_config(self):
+    async def get_or_create_vless_config(self):
+        await VlessInboundApi().make_vless_inbound('main', 1032)
         main_inbound_id = await VlessInboundApi().get_inbounds_id_by_remark('main')
         await VlessClientApi().make_vless_client(main_inbound_id, self.user.user_tg_code,)
         return await VlessClientApi().get_vless_client_link_by_email(self.user.user_tg_code)
@@ -136,12 +150,12 @@ class User:
             user_bot_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'BOT')
             if user_bot_access:
                 
-                if (user_bot_access.access_from_dttm <= datetime.now()) and (user_bot_access.access_to_dttm > datetime.now()):
+                if (user_bot_access.access_from_dttm <= now_dttm()) and (user_bot_access.access_to_dttm > now_dttm()):
                     user_bot_access_data = {
                         'access': True,
                         'dates': [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
                     }
-                elif (user_bot_access.access_to_dttm < datetime.now()):
+                elif (user_bot_access.access_to_dttm < now_dttm()):
                     user_bot_access_data = {
                         'access': False,
                         'dates': [user_bot_access.access_from_dttm, user_bot_access.access_to_dttm]
@@ -151,12 +165,12 @@ class User:
             user_vpn_access = await dbm.get_access_by_user_id_access_name(user.user_id, 'VPN')
             if user_vpn_access:
                 
-                if (user_vpn_access.access_from_dttm <= datetime.now()) and (user_vpn_access.access_to_dttm > datetime.now()):
+                if (user_vpn_access.access_from_dttm <= now_dttm()) and (user_vpn_access.access_to_dttm > now_dttm()):
                     user_vpn_access_data = {
                         'access': True,
                         'dates': [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]
                     }
-                elif (user_bot_access.access_to_dttm < datetime.now()):
+                elif (user_bot_access.access_to_dttm < now_dttm()):
                     user_vpn_access_data = {
                         'access': False,
                         'dates': [user_vpn_access.access_from_dttm, user_vpn_access.access_to_dttm]

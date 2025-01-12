@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import DeclarativeBase
 from settings import settings
+from asyncpg import exceptions
 
 import enum
 
 MAIN_SCHEMA_NAME = settings.DB_main_schema_name
 WRITE_LOGS = settings.WRITE_LOGS
 
-MONTH_TIME_DELTA = 30
+
 
 class Fold(enum.Enum):
     pass
