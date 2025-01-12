@@ -60,14 +60,14 @@ async def send_request_message_to_admins(user_db_data: UserStruct, access_name: 
     if admins == None:
         admins = await Admin().get_admins_tg_code()
     for admin in admins:
-        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}'+
+        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!")}\n\n'+
                                f'Пользователь {user_db_data.user_tg_code}, @{user_db_data.user_tag} запросил доступ к {access_name}!')
 
 async def send_payed_message_to_admins(user_db_data: UserStruct, admins: list = None):
     if admins == None:
         admins = await Admin().get_admins_tg_code()
     for admin in admins:
-        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!\n\n")}'+
+        await bot.send_message(int(admin), f'{html.bold("ВНИМАНИЕ! ЛИЧНОЕ УВЕДОМЛЕНИЕ АДМИНИСТРАТОРА!")}\n\n'+
                                f'Пользователь {user_db_data.user_tg_code}, @{user_db_data.user_tag} оплатил заказ!\n'+
                                f'Сформирован автоматический запрос на доступ к VPN для пользователя.\n' +
                                f'Вызвать админ-меню /admin')
