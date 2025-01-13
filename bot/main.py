@@ -76,7 +76,7 @@ def get_menu_keyboard_by_user_data(user_data: UserStruct):
 
 def get_renew_kb_by_user_data(user_data: UserStruct):    
     ikb = [[InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_send_order__{user_data.user_tg_code}')],
-        [InlineKeyboardButton(text="💵 Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
+        [InlineKeyboardButton(text="💵 Я уже оплатил заказ!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
         [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data=f'menu_btn_back_menu__{user_data.user_tg_code}')]]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
