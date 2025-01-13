@@ -99,7 +99,8 @@ class VlessClientApi():
             inbound = await vless_api.inbound.get_by_id(client.inbound_id)
             if inbound.settings.clients:
                 for client in inbound.settings.clients:
-                    return client.id if client.email == client_email else None
+                    if client.email == client_email:
+                        return client.id
      
     async def update_client_expired_time(self, client_email: str, new_time: datetime) -> str:
         try:

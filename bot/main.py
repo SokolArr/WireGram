@@ -482,9 +482,9 @@ async def command_start_handler(message: Message) -> None:
                         await message.answer("Похоже ты еще не запрашивал доступ. Напиши /join")
             else:
                 await message.answer(f"Напиши сначала /start")
-            
         except Exception as e:
             await error_message(message, e, 1)
+    
      
 async def main() -> None:
     if DbManager().check_db_available():
@@ -494,6 +494,7 @@ async def main() -> None:
             await dp.start_polling(bot)
         except Exception as e:
             await bot.send_message(int(settings.TG_ADMIN_ID), f'Упал с ошибкой: {e}')
+            await asyncio.sleep(10)
     else:
         raise Exception(f'NO DATABASE CONNECTION!!!')   
                        
@@ -516,12 +517,8 @@ if __name__ == "__main__":
     logger.addHandler(console_handler)
 
     #!!!main instance!!!
-    try:
-        asyncio.run(main())
-        logger.info('------------------BOT_DOWN------------------\n')
+    asyncio.run(main())
+    logger.info('------------------BOT_DOWN------------------\n')
         
-    except Exception as e:
-        logger.info('------------------BOT_DOWN------------------\n')
-        logging.error(f"Bot crashed with error: {e}. Restarting in 60 seconds...")
     
     

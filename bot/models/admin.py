@@ -65,15 +65,16 @@ class Admin():
             access_name = 'VPN'
             try:
                 vpn_resp = await VlessClientApi().update_client_expired_time(user_tg_code, new_time)
-                db_resp = await dbm.accept_request_by_user_id_request_name(user_id, access_name)
-                order_resp = await self.accept_order(user_tg_code)
-                if db_resp and vpn_resp and (order_resp == OrderResponse.SUCCESS):
-                    return {
-                        'affected': db_resp[0],
-                        'updated': db_resp[1]
-                    }  
+                if vpn_resp:
+                    db_resp = await dbm.accept_request_by_user_id_request_name(user_id, access_name)
+                    order_resp = await self.accept_order(user_tg_code)
+                    if db_resp and vpn_resp and (order_resp == OrderResponse.SUCCESS):
+                        return {
+                            'affected': db_resp[0],
+                            'updated': db_resp[1]
+                        }  
             except:
-                pass
+                return None
          
     @staticmethod   
     async def add_access(user_tg_code: str) -> str:

@@ -66,7 +66,7 @@ class DbManager():
             self.__create_schemas()
             Base.metadata.drop_all(sync_engine)
             Base.metadata.create_all(sync_engine)
-            if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct])
+            if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct, UserOrderStruct])
             sync_engine.echo = True
 
     def check_db_exist(self):
