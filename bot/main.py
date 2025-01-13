@@ -490,7 +490,10 @@ async def main() -> None:
     if DbManager().check_db_available():
         dbm.create_db()
         logger.info('------------------BOT_STARTED------------------\n')
-        await dp.start_polling(bot)
+        try:
+            await dp.start_polling(bot)
+        except Exception as e:
+            await bot.send_message(int(settings.TG_ADMIN_ID), f'Упал с ошибкой: {e}')
     else:
         raise Exception(f'NO DATABASE CONNECTION!!!')   
                        
