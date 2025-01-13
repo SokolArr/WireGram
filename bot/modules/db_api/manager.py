@@ -1,7 +1,7 @@
 import uuid
 import logging
 from enum import Enum
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, insert, update, delete, and_, text, Sequence
 from sqlalchemy.orm import aliased, MappedColumn
@@ -53,7 +53,7 @@ class DBErrorHandler:
             return ReturnCodes.DATABASE_ERROR
          
 def now_dttm():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now()
         
 class DbManager():
     MONTH_TIME_DELTA = 30
@@ -193,6 +193,8 @@ class DbManager():
         try:
             with session_factory() as session:
                 create_sql = f"""
+                    ALTER DATABASE db SET timezone TO 'Europe/Moscow';
+                    
                     DROP SCHEMA IF EXISTS main CASCADE;
                     CREATE SCHEMA IF NOT EXISTS main;
 

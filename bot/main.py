@@ -26,7 +26,7 @@ dp = Dispatcher()
 # Helpers&Utils 
 async def error_message(message: Message, exeption:str, err_code:int):
     if err_code == 1:
-        err_mess = html.pre(f"Возникла критическая ошибка: {datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M%S')}"+"ERR"+str(err_code))
+        err_mess = html.pre(f"Возникла критическая ошибка: {datetime.now().strftime('%Y%m%d%H%M%S')}"+"ERR"+str(err_code))
         logging.error(f'tg_error_message:{err_mess};exeption:{exeption}')
         await message.answer(f"⚠️ Возникла критическая ошибка!\n\n- Отправь письмо с текстом "+html.bold('из следующего cообщения')
                              + " - на почту yamcbot@gmail.com.\n" +
