@@ -24,3 +24,9 @@ XUI_USER = ""
 XUI_PASS = ""
 EOL
 ```
+
+git clone https://github.com/MHSanaei/3x-ui.git
+git clone https://github.com/SokolArr/WireGram.git
+cd 3x-ui
+
+docker compose up -d

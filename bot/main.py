@@ -23,17 +23,6 @@ bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=Pars
 dbm = DbManager()
 dp = Dispatcher()
 
-async def main() -> None:
-    # dbm.create_db()
-    try:
-        if DbManager().check_db_available():
-            logger.info('------------------BOT_STARTED------------------\n')
-            await dp.start_polling(bot)
-        else:
-            raise Exception(f'NO DATABASE CONNECTION!!!')
-    except:
-        pass
-
 # Helpers&Utils 
 async def error_message(message: Message, exeption:str, err_code:int):
     if err_code == 1:
@@ -496,6 +485,14 @@ async def command_start_handler(message: Message) -> None:
             
         except Exception as e:
             await error_message(message, e, 1)
+     
+async def main() -> None:
+    if DbManager().check_db_available():
+        dbm.create_db()
+        logger.info('------------------BOT_STARTED------------------\n')
+        await dp.start_polling(bot)
+    else:
+        raise Exception(f'NO DATABASE CONNECTION!!!')   
                        
 if __name__ == "__main__":
     logger = logging.getLogger()
@@ -504,7 +501,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter('[%(asctime)s]-[%(name)s]-%(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     
     #file_handler
-    file_handler = logging.FileHandler('./bot/logs/main.log')
+    file_handler = logging.FileHandler('./logs/main.log')
     file_handler.setFormatter(formatter)
     
     #console_handler
@@ -516,5 +513,14 @@ if __name__ == "__main__":
     logger.addHandler(console_handler)
 
     #!!!main instance!!!
-    asyncio.run(main())
-    logger.info('------------------BOT_DOWN------------------\n')
+    asyncio.sleep(10)
+    try:
+        asyncio.run(main())
+        logger.info('------------------BOT_DOWN------------------\n')
+        
+    except Exception as e:
+        logger.info('------------------BOT_DOWN------------------\n')
+        logging.error(f"Bot crashed with error: {e}. Restarting in 60 seconds...")
+        asyncio.sleep(10)
+    
+    

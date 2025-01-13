@@ -60,15 +60,19 @@ class DbManager():
     
     def create_db(self):
         sync_engine.echo = False
-        Base.metadata.drop_all(sync_engine)
-        Base.metadata.create_all(sync_engine)
-        if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct])
-        sync_engine.echo = True
+        if self.check_db_available():
+            logging.info("DB ALREADY EXISTS!")
+        else:
+            self.__create_schemas()
+            Base.metadata.drop_all(sync_engine)
+            Base.metadata.create_all(sync_engine)
+            if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct])
+            sync_engine.echo = True
 
     def check_db_available(self):
         with session_factory() as session:
             q = (
-                text("SELECT 1")
+                text("SELECT 1 FROM main.user")
             )
             res = session.execute(q)
             return res.scalar()
@@ -165,7 +169,26 @@ class DbManager():
                     session.execute(text(delete_trigger_sql))
                     
                     session.commit()
-                    logging.info("Triggers ok!")
+            logging.info("TRIGGERS OK!")
+                
+        except Exception as e:
+            logging.error(f"Error occurred: {e}")
+            return False
+        
+    @staticmethod
+    def __create_schemas():
+        try:
+            with session_factory() as session:
+                create_sql = f"""
+                    DROP SCHEMA IF EXISTS main CASCADE;
+                    CREATE SCHEMA IF NOT EXISTS main;
+
+                    DROP SCHEMA IF EXISTS logs CASCADE;
+                    CREATE SCHEMA IF NOT EXISTS logs;
+                """
+                session.execute(text(create_sql))
+                session.commit()
+                logging.info("SCHEMAS OK!")
                 
         except Exception as e:
             logging.error(f"Error occurred: {e}")
