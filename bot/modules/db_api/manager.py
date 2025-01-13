@@ -69,11 +69,22 @@ class DbManager():
             if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct])
             sync_engine.echo = True
 
-    def check_db_available(self):
+    def check_db_exist(self):
         try:
             with session_factory() as session:
                 q = (
                     text("SELECT 1 FROM main.user")
+                )
+                res = session.execute(q)
+                return res.scalar()
+        except:
+            return False
+
+    def check_db_available(self):
+        try:
+            with session_factory() as session:
+                q = (
+                    text("SELECT 1")
                 )
                 res = session.execute(q)
                 return res.scalar()
