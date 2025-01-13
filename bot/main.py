@@ -247,10 +247,10 @@ async def menu_btn_handler(call: types.CallbackQuery):
                         elif button_tag == 'menu_btn_send_order':
                             resp = await User(user_data.user_db_data).make_order()
                             if resp == OrderResponse.SUCCESS:
-                                await call.message.edit_text(f"Заказ сформирован",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
+                                await call.message.edit_text(f"Заказ сформирован. Реквизиты оплаты:",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
                                 await send_request_message_to_admins(user_data.user_db_data, 'VPN')
                             elif resp == OrderResponse.NEW_ORDER_EXIST:
-                                await call.message.edit_text(f"Заказ надо оплатить",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
+                                await call.message.edit_text(f"Заказ надо оплатить. Реквизиты оплаты",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
                             elif resp == OrderResponse.PAYED_ORDER_EXIST:
                                 await call.message.edit_text(f"Заказ в обработке...",reply_markup=get_menu_back_btn(user_data.user_db_data))
                             elif resp == OrderResponse.BAD_TRY:
