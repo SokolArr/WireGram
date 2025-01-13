@@ -69,19 +69,19 @@ def get_menu_keyboard_by_user_data(user_data: UserStruct):
     
     ikb = [[InlineKeyboardButton(text="📊 Проверить остатки и баланс", callback_data=f'menu_btn_get_all_status__{user_data.user_tg_code}')],
         [InlineKeyboardButton(text="📄 Конфиг для подключения", callback_data=f'menu_btn_get_conf__{user_data.user_tg_code}')],
-        [InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_renew_vpn_access__{user_data.user_tg_code}')]]
+        [InlineKeyboardButton(text="🌎 Доступ к VPN", callback_data=f'menu_btn_renew_vpn_access__{user_data.user_tg_code}')]]
     if admin_flg:
         ikb.append([InlineKeyboardButton(text="⚠️ АДМИН-МЕНЮ", callback_data=f'admin_btn_secret_menu__{user_data.user_tg_code}')])
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
 def get_renew_kb_by_user_data(user_data: UserStruct):    
-    ikb = [[InlineKeyboardButton(text="Направить запрос", callback_data=f'menu_btn_send_order__{user_data.user_tg_code}')],
-        [InlineKeyboardButton(text="Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
+    ikb = [[InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_send_order__{user_data.user_tg_code}')],
+        [InlineKeyboardButton(text="💵 Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
         [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data=f'menu_btn_back_menu__{user_data.user_tg_code}')]]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
 def get_to_pay_kb_by_user_data(user_data: UserStruct):    
-    ikb = [[InlineKeyboardButton(text="Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
+    ikb = [[InlineKeyboardButton(text="💵 Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
             [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data=f'menu_btn_back_menu__{user_data.user_tg_code}')]]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
@@ -149,7 +149,7 @@ def get_admin_choose_keyboard(user_data: UserStruct, data: list[tuple]):
 def get_menu_back_renew_keyboard(user_data: UserStruct):
     user_tg_code = user_data.user_tg_code
     ikb = [
-        [InlineKeyboardButton(text="✅ Продлить доступ", 
+        [InlineKeyboardButton(text="🌎 Доступ к VPN", 
                               callback_data=('menu_btn_renew_vpn_access__' + str(user_tg_code))
                              )],
         [InlineKeyboardButton(text="⬅️ Вернуться в меню", 
@@ -200,9 +200,9 @@ async def menu_btn_handler(call: types.CallbackQuery):
                                     except Exception as e:
                                         await error_message(call.message, e, 1)
                                 else:
-                                    await call.message.edit_text("⚠️ У тебя нет активной подписки", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
+                                    await call.message.edit_text("⚠️ У тебя нет подписки VPN. Закажи доступ в меню", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
                             else:
-                                await call.message.edit_text("⚠️ У тебя нет активной подписки", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
+                                await call.message.edit_text("⚠️ У тебя нет подписки VPN. Закажи доступ в меню", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
                         
                         elif button_tag == 'menu_btn_get_all_status':
                             vpn_access_mess = f"{html.bold('VPN: (')}"
@@ -247,7 +247,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
                         elif button_tag == 'menu_btn_send_order':
                             resp = await User(user_data.user_db_data).make_order()
                             if resp == OrderResponse.SUCCESS:
-                                await call.message.edit_text(f"Заказ сформирован",reply_markup=get_menu_back_btn(user_data.user_db_data))
+                                await call.message.edit_text(f"Заказ сформирован",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
                                 await send_request_message_to_admins(user_data.user_db_data, 'VPN')
                             elif resp == OrderResponse.NEW_ORDER_EXIST:
                                 await call.message.edit_text(f"Заказ надо оплатить",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
