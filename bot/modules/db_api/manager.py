@@ -60,7 +60,7 @@ class DbManager():
     
     def create_db(self):
         sync_engine.echo = False
-        if self.check_db_available():
+        if self.check_db_exist():
             logging.info("DB ALREADY EXISTS!")
         else:
             self.__create_schemas()
