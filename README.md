@@ -11,7 +11,7 @@ This extension allows you to manage peers using a Telegram bot. This documentati
 Create a virtual environment to isolate your project's dependencies:
 
 ```
-`python -m venv myenv
+python -m venv myenv
 ```
 
 ### Step 2: Activate the Virtual Environment
