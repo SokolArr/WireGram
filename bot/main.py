@@ -513,7 +513,6 @@ if __name__ == "__main__":
     logger.addHandler(console_handler)
 
     #!!!main instance!!!
-    asyncio.sleep(10)
     try:
         asyncio.run(main())
         logger.info('------------------BOT_DOWN------------------\n')
@@ -521,6 +520,5 @@ if __name__ == "__main__":
     except Exception as e:
         logger.info('------------------BOT_DOWN------------------\n')
         logging.error(f"Bot crashed with error: {e}. Restarting in 60 seconds...")
-        asyncio.sleep(10)
     
     

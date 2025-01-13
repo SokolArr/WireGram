@@ -70,13 +70,15 @@ class DbManager():
             sync_engine.echo = True
 
     def check_db_available(self):
-        with session_factory() as session:
-            q = (
-                text("SELECT 1 FROM main.user")
-            )
-            res = session.execute(q)
-            return res.scalar()
-        return False
+        try:
+            with session_factory() as session:
+                q = (
+                    text("SELECT 1 FROM main.user")
+                )
+                res = session.execute(q)
+                return res.scalar()
+        except:
+            return False
 
     @staticmethod
     def __create_logs_triggers(classes:list[Base], schema_name:str =None):

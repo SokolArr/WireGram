@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "main.py"]  # Замените bot.py на имя вашего файла с кодом бота
+CMD python main.py
