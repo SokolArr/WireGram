@@ -47,30 +47,33 @@ class Admin():
     
     @staticmethod  
     async def accept_user_bot_request(user_tg_code: str):
-        access_name = 'BOT'
-        resp = await dbm.accept_request_by_user_tg_code_request_name(user_tg_code, access_name)
-        if resp:
-            return {
-                'affected': resp[0],
-                'updated': resp[1]
-            }
+        user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
+        if user:
+            access_name = 'BOT'
+            resp = await dbm.accept_request_by_user_id_request_name(user.user_id, access_name)
+            if resp:
+                return {
+                    'affected': resp[0],
+                    'updated': resp[1]
+                }
         
     async def accept_user_vpn_request(self, user_tg_code: str):
         new_time = datetime.now(timezone.utc) + timedelta(600)
         user: UserStruct = await dbm.get_user_by_tg_code(user_tg_code)
-        user_id = user.user_id
-        access_name = 'VPN'
-        try:
-            vpn_resp = await VlessClientApi().update_client_expired_time(user_tg_code, new_time)
-            db_resp = await dbm.accept_request_by_user_id_request_name(user_id, access_name)
-            order_resp = await self.accept_order(user_tg_code)
-            if db_resp and vpn_resp and (order_resp == OrderResponse.SUCCESS):
-                return {
-                    'affected': db_resp[0],
-                    'updated': db_resp[1]
-                }  
-        except:
-            pass
+        if user:
+            user_id = user.user_id
+            access_name = 'VPN'
+            try:
+                vpn_resp = await VlessClientApi().update_client_expired_time(user_tg_code, new_time)
+                db_resp = await dbm.accept_request_by_user_id_request_name(user_id, access_name)
+                order_resp = await self.accept_order(user_tg_code)
+                if db_resp and vpn_resp and (order_resp == OrderResponse.SUCCESS):
+                    return {
+                        'affected': db_resp[0],
+                        'updated': db_resp[1]
+                    }  
+            except:
+                pass
          
     @staticmethod   
     async def add_access(user_tg_code: str) -> str:

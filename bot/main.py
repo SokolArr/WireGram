@@ -210,7 +210,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
                             bot_access_mess += f" доступен с {html.bold(user_data.user_bot_access_data.dates[0].strftime(DT_FORMAT))} по {html.bold(user_data.user_bot_access_data.dates[1].strftime(DT_FORMAT))}\n"
                             
                             if user_data.user_vpn_access_data:
-                                vpn_access_mess += f"{'✅):' if user_data.user_vpn_access_data.access else '⛔️): был'} VPN"
+                                vpn_access_mess += f"{'✅):' if user_data.user_vpn_access_data.access else '⛔️): был'} "
                                 vpn_access_mess += f" доступен с {html.bold(user_data.user_vpn_access_data.dates[0].strftime(DT_FORMAT))} по {html.bold(user_data.user_vpn_access_data.dates[1].strftime(DT_FORMAT))}\n"
                             else:
                                 vpn_access_mess += f"⛔️): нет доступа"
