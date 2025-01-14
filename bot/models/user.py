@@ -1,6 +1,5 @@
 import logging, uuid
 from pydantic import BaseModel
-from enum import Enum
 
 from modules.db_api import DbManager
 from modules.db_api.manager import ReturnCodes, OrderStatus, OrderResponse, now_dttm

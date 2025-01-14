@@ -1,13 +1,38 @@
 version: '3'
 services:
+  telegram_bot:
+    build:
+      context: ./bot
+    volumes:
+      - ./bot:/app/bot
+    environment:
+      DEBUG_MODE: "True"
+      WRITE_LOGS: "True"
+      
+      BOT_TOKEN: ""
+      TG_ADMIN_ID: ""
+      
+      DB_HOST: ""
+      DB_PORT: 
+      DB_USER: ""
+      DB_PASS: ""
+      DB_NAME: ""
+      
+      XUI_HOST: ""
+      XUI_USER: ""
+      XUI_PASS: ""
+    depends_on:
+      - db
+    restart: always
+
   db:
     image: postgres:14
     restart: always
     volumes:
       - ./db_data:/var/lib/postgresql/data
     ports:
-      - "2345:5432"
+      - "5432:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: 12345678
-      POSTGRES_DB: db
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
+      POSTGRES_DB: 

@@ -23,21 +23,10 @@ bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=Pars
 dbm = DbManager()
 dp = Dispatcher()
 
-async def main() -> None:
-    # dbm.create_db()
-    try:
-        if DbManager().check_db_available():
-            logger.info('------------------BOT_STARTED------------------\n')
-            await dp.start_polling(bot)
-        else:
-            raise Exception(f'NO DATABASE CONNECTION!!!')
-    except:
-        pass
-
 # Helpers&Utils 
 async def error_message(message: Message, exeption:str, err_code:int):
     if err_code == 1:
-        err_mess = html.pre(f"Возникла критическая ошибка: {datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M%S')}"+"ERR"+str(err_code))
+        err_mess = html.pre(f"Возникла критическая ошибка: {datetime.now().strftime('%Y%m%d%H%M%S')}"+"ERR"+str(err_code))
         logging.error(f'tg_error_message:{err_mess};exeption:{exeption}')
         await message.answer(f"⚠️ Возникла критическая ошибка!\n\n- Отправь письмо с текстом "+html.bold('из следующего cообщения')
                              + " - на почту yamcbot@gmail.com.\n" +
@@ -80,19 +69,19 @@ def get_menu_keyboard_by_user_data(user_data: UserStruct):
     
     ikb = [[InlineKeyboardButton(text="📊 Проверить остатки и баланс", callback_data=f'menu_btn_get_all_status__{user_data.user_tg_code}')],
         [InlineKeyboardButton(text="📄 Конфиг для подключения", callback_data=f'menu_btn_get_conf__{user_data.user_tg_code}')],
-        [InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_renew_vpn_access__{user_data.user_tg_code}')]]
+        [InlineKeyboardButton(text="🌎 Доступ к VPN", callback_data=f'menu_btn_renew_vpn_access__{user_data.user_tg_code}')]]
     if admin_flg:
         ikb.append([InlineKeyboardButton(text="⚠️ АДМИН-МЕНЮ", callback_data=f'admin_btn_secret_menu__{user_data.user_tg_code}')])
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
 def get_renew_kb_by_user_data(user_data: UserStruct):    
-    ikb = [[InlineKeyboardButton(text="Направить запрос", callback_data=f'menu_btn_send_order__{user_data.user_tg_code}')],
-        [InlineKeyboardButton(text="Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
+    ikb = [[InlineKeyboardButton(text="✅ Продлить доступ", callback_data=f'menu_btn_send_order__{user_data.user_tg_code}')],
+        [InlineKeyboardButton(text="💵 Я уже оплатил заказ!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
         [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data=f'menu_btn_back_menu__{user_data.user_tg_code}')]]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
 def get_to_pay_kb_by_user_data(user_data: UserStruct):    
-    ikb = [[InlineKeyboardButton(text="Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
+    ikb = [[InlineKeyboardButton(text="💵 Я оплатил!", callback_data=f'menu_btn_allready_payed__{user_data.user_tg_code}')],
             [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data=f'menu_btn_back_menu__{user_data.user_tg_code}')]]
     return InlineKeyboardMarkup(inline_keyboard=ikb)
 
@@ -160,7 +149,7 @@ def get_admin_choose_keyboard(user_data: UserStruct, data: list[tuple]):
 def get_menu_back_renew_keyboard(user_data: UserStruct):
     user_tg_code = user_data.user_tg_code
     ikb = [
-        [InlineKeyboardButton(text="✅ Продлить доступ", 
+        [InlineKeyboardButton(text="🌎 Доступ к VPN", 
                               callback_data=('menu_btn_renew_vpn_access__' + str(user_tg_code))
                              )],
         [InlineKeyboardButton(text="⬅️ Вернуться в меню", 
@@ -211,9 +200,9 @@ async def menu_btn_handler(call: types.CallbackQuery):
                                     except Exception as e:
                                         await error_message(call.message, e, 1)
                                 else:
-                                    await call.message.edit_text("⚠️ У тебя нет активной подписки", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
+                                    await call.message.edit_text("⚠️ У тебя нет подписки VPN. Закажи доступ в меню", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
                             else:
-                                await call.message.edit_text("⚠️ У тебя нет активной подписки", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
+                                await call.message.edit_text("⚠️ У тебя нет подписки VPN. Закажи доступ в меню", reply_markup=get_menu_back_renew_keyboard(user_data.user_db_data))
                         
                         elif button_tag == 'menu_btn_get_all_status':
                             vpn_access_mess = f"{html.bold('VPN: (')}"
@@ -221,7 +210,7 @@ async def menu_btn_handler(call: types.CallbackQuery):
                             bot_access_mess += f" доступен с {html.bold(user_data.user_bot_access_data.dates[0].strftime(DT_FORMAT))} по {html.bold(user_data.user_bot_access_data.dates[1].strftime(DT_FORMAT))}\n"
                             
                             if user_data.user_vpn_access_data:
-                                vpn_access_mess += f"{'✅):' if user_data.user_vpn_access_data.access else '⛔️): был'} VPN"
+                                vpn_access_mess += f"{'✅):' if user_data.user_vpn_access_data.access else '⛔️): был'} "
                                 vpn_access_mess += f" доступен с {html.bold(user_data.user_vpn_access_data.dates[0].strftime(DT_FORMAT))} по {html.bold(user_data.user_vpn_access_data.dates[1].strftime(DT_FORMAT))}\n"
                             else:
                                 vpn_access_mess += f"⛔️): нет доступа"
@@ -258,10 +247,10 @@ async def menu_btn_handler(call: types.CallbackQuery):
                         elif button_tag == 'menu_btn_send_order':
                             resp = await User(user_data.user_db_data).make_order()
                             if resp == OrderResponse.SUCCESS:
-                                await call.message.edit_text(f"Заказ сформирован",reply_markup=get_menu_back_btn(user_data.user_db_data))
+                                await call.message.edit_text(f"Заказ сформирован. Реквизиты оплаты:",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
                                 await send_request_message_to_admins(user_data.user_db_data, 'VPN')
                             elif resp == OrderResponse.NEW_ORDER_EXIST:
-                                await call.message.edit_text(f"Заказ надо оплатить",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
+                                await call.message.edit_text(f"Заказ надо оплатить. Реквизиты оплаты",reply_markup=get_to_pay_kb_by_user_data(user_data.user_db_data))
                             elif resp == OrderResponse.PAYED_ORDER_EXIST:
                                 await call.message.edit_text(f"Заказ в обработке...",reply_markup=get_menu_back_btn(user_data.user_db_data))
                             elif resp == OrderResponse.BAD_TRY:
@@ -493,9 +482,21 @@ async def command_start_handler(message: Message) -> None:
                         await message.answer("Похоже ты еще не запрашивал доступ. Напиши /join")
             else:
                 await message.answer(f"Напиши сначала /start")
-            
         except Exception as e:
             await error_message(message, e, 1)
+    
+     
+async def main() -> None:
+    if DbManager().check_db_available():
+        dbm.create_db()
+        logger.info('------------------BOT_STARTED------------------\n')
+        try:
+            await dp.start_polling(bot)
+        except Exception as e:
+            await bot.send_message(int(settings.TG_ADMIN_ID), f'Упал с ошибкой: {e}')
+            await asyncio.sleep(10)
+    else:
+        raise Exception(f'NO DATABASE CONNECTION!!!')   
                        
 if __name__ == "__main__":
     logger = logging.getLogger()
@@ -504,7 +505,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter('[%(asctime)s]-[%(name)s]-%(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     
     #file_handler
-    file_handler = logging.FileHandler('./bot/logs/main.log')
+    file_handler = logging.FileHandler('./logs/main.log')
     file_handler.setFormatter(formatter)
     
     #console_handler
@@ -518,3 +519,6 @@ if __name__ == "__main__":
     #!!!main instance!!!
     asyncio.run(main())
     logger.info('------------------BOT_DOWN------------------\n')
+        
+    
+    

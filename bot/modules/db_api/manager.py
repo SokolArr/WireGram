@@ -1,7 +1,7 @@
 import uuid
 import logging
 from enum import Enum
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, insert, update, delete, and_, text, Sequence
 from sqlalchemy.orm import aliased, MappedColumn
@@ -53,26 +53,43 @@ class DBErrorHandler:
             return ReturnCodes.DATABASE_ERROR
          
 def now_dttm():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now()
         
 class DbManager():
     MONTH_TIME_DELTA = 30
     
     def create_db(self):
         sync_engine.echo = False
-        Base.metadata.drop_all(sync_engine)
-        Base.metadata.create_all(sync_engine)
-        if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct])
-        sync_engine.echo = True
+        if self.check_db_exist():
+            logging.info("DB ALREADY EXISTS!")
+        else:
+            self.__create_schemas()
+            Base.metadata.drop_all(sync_engine)
+            Base.metadata.create_all(sync_engine)
+            if WRITE_LOGS: self.__create_logs_triggers([UserStruct, UserAccessStruct, UserReqAccessStruct, UserOrderStruct])
+            sync_engine.echo = True
+
+    def check_db_exist(self):
+        try:
+            with session_factory() as session:
+                q = (
+                    text("SELECT 1 FROM main.user")
+                )
+                res = session.execute(q)
+                return res.scalar()
+        except:
+            return False
 
     def check_db_available(self):
-        with session_factory() as session:
-            q = (
-                text("SELECT 1")
-            )
-            res = session.execute(q)
-            return res.scalar()
-        return False
+        try:
+            with session_factory() as session:
+                q = (
+                    text("SELECT 1")
+                )
+                res = session.execute(q)
+                return res.scalar()
+        except:
+            return False
 
     @staticmethod
     def __create_logs_triggers(classes:list[Base], schema_name:str =None):
@@ -165,7 +182,28 @@ class DbManager():
                     session.execute(text(delete_trigger_sql))
                     
                     session.commit()
-                    logging.info("Triggers ok!")
+            logging.info("TRIGGERS OK!")
+                
+        except Exception as e:
+            logging.error(f"Error occurred: {e}")
+            return False
+        
+    @staticmethod
+    def __create_schemas():
+        try:
+            with session_factory() as session:
+                create_sql = f"""
+                    ALTER DATABASE db SET timezone TO 'Europe/Moscow';
+                    
+                    DROP SCHEMA IF EXISTS main CASCADE;
+                    CREATE SCHEMA IF NOT EXISTS main;
+
+                    DROP SCHEMA IF EXISTS logs CASCADE;
+                    CREATE SCHEMA IF NOT EXISTS logs;
+                """
+                session.execute(text(create_sql))
+                session.commit()
+                logging.info("SCHEMAS OK!")
                 
         except Exception as e:
             logging.error(f"Error occurred: {e}")
