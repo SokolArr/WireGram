@@ -19,7 +19,7 @@ def access_request_kb(user_tg_id: int):
 
 def all_access_request_btn(user_tg_id: int):
     kb = [
-        [InlineKeyboardButton(text="🔄 Все заявки к боту", callback_data=f'admin_all_ar_btn:{user_tg_id}')],
+        [InlineKeyboardButton(text="🔤 Все заявки к боту", callback_data=f'admin_all_ar_btn:{user_tg_id}')],
         [InlineKeyboardButton(text="⬅️ Назад в админ-меню", callback_data=f'admin_menu_back_btn:{user_tg_id}')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
@@ -28,13 +28,13 @@ def access_requests_kb(requests: list[UserAccReqStruct]):
     
     builder = InlineKeyboardBuilder()
     for request in requests:
-        builder.row(InlineKeyboardButton(text=f"✅ {request.user_id}", callback_data=(f'admin_ars_acpt_btn:{request.user_id}')),
-                    InlineKeyboardButton(text=f"⛔️ {request.user_id}", callback_data=(f'admin_ars_decl_btn:{request.user_id}'))
+        user_id = request[0]
+        builder.row(InlineKeyboardButton(text=f"✅ {user_id}", callback_data=(f'admin_ars_acpt_btn:{user_id}')),
+                    InlineKeyboardButton(text=f"⛔️ {user_id}", callback_data=(f'admin_ars_decl_btn:{user_id}'))
         )
         
-    builder.row(
-        InlineKeyboardButton(text="🔄 Обновить", callback_data=(f'admin_all_ar_btn:{request.user_id}'))
-    )
+    builder.row(InlineKeyboardButton(text="🔄 Все заявки к боту", callback_data=(f'admin_all_ar_btn:0')))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад в админ-меню", callback_data=f'admin_menu_back_btn:0'))
     
     builder
     return builder
@@ -64,8 +64,8 @@ def conf_pay_requests_btn(orders: tuple):
                     InlineKeyboardButton(text=f"⛔️ {user_tg_id} {config_name}", callback_data=(f'admin_conf_pay_decl_btn:{user_tg_id}:{config_name}'))
         )
     
-    builder.row(InlineKeyboardButton(text="🔄 Все заявки на оплату", callback_data=f'admin_all_conf_pay_btn:{user_tg_id}'))
-    builder.row(InlineKeyboardButton(text="⬅️ Назад в админ-меню", callback_data=f'admin_menu_back_btn:{user_tg_id}'))
+    builder.row(InlineKeyboardButton(text="🔄 Все заявки на оплату", callback_data=f'admin_all_conf_pay_btn:0'))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад в админ-меню", callback_data=f'admin_menu_back_btn:0'))
     return builder.as_markup()
 
 def all_conf_pay_requests_btn(user_tg_id: int):

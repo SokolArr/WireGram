@@ -421,13 +421,14 @@ class DbManager():
         try:
             async with dbs.async_session_factory() as session:
                 q = (
-                    select(UserAccReqStruct)
+                    select(UserStruct.user_tg_id, UserAccReqStruct.access_name)
+                    .join(UserStruct, UserAccReqStruct.user_id == UserStruct.user_id)
                     .where(UserAccReqStruct.access_name == access_name)
                     .limit(limit)
                 )
-                res = await session.scalars(q)
-                res_fst = res.all()
-                return res_fst
+                res = await session.execute(q)
+                res_all = res.all()
+                return res_all
         except Exception as e:
             raise e
         

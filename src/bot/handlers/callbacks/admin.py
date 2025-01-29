@@ -34,7 +34,7 @@ async def admin_cb_cmd(call: CallbackQuery):
             user_config_name = call_data[2]
 
         match call_tag:
-            case 'admin_ar_acpt_btn':
+            case 'admin_ars_acpt_btn':
                 try:
                     resp = await dbm.add_access(user_tg_id, 'BOT', 365)
                     if resp == ReturnCode.SUCCESS:
@@ -61,7 +61,7 @@ async def admin_cb_cmd(call: CallbackQuery):
                         reply_markup=all_access_request_btn(user_tg_id)
                     )
 
-            case 'admin_ar_decl_btn':
+            case 'admin_ars_decl_btn':
                 pass
 
             case 'admin_all_ar_btn':
