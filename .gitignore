@@ -8,8 +8,6 @@ __old
 /prod
 .vscode
 3x-ui
-*docker*
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
