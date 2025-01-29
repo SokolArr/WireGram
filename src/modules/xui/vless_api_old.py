@@ -118,6 +118,18 @@ class VlessClientApi():
                     return True
         except Exception as e:
             return e
+        
+        
+    async def delete_client(self, client_email: str) -> str:
+        try:
+            await vless_api.login()
+            client = await vless_api.client.get_by_email(client_email)
+            if client:
+                client_inbound = await vless_api.client.get_by_email(client_email)
+                client_id = await self.get_client_uuid_by_email(client_email)
+                await vless_api.client.delete(client_inbound.inbound_id, client_id)
+        except Exception as e:
+            return e
             
     async def get_vless_client_link_by_email(self, email:str) -> str:
         await vless_api.login()
@@ -142,5 +154,4 @@ class VlessClientApi():
                 serv_host = vless_api.server.host.split('//')[1].split(':')[0]
                 
                 vless_link = f'vless://{cl_id}@{serv_host}:{ib_port}?type={ib_network}&security={ib_sec}&pbk={ib_pbk}&fp={ib_fp}&sni={ib_snif}&sid={ib_sid}&spx={ib_spx}&flow={cl_flow}#{ib_remark}-{cl_email}'
-                return vless_link
-        return ''
+        return vless_link

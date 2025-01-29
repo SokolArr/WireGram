@@ -2,37 +2,43 @@ version: '3'
 services:
   telegram_bot:
     build:
-      context: ./bot
+      context: ./src
     volumes:
-      - ./bot:/app/bot
+      - ./logs:/app/wg_bot_src/logs
     environment:
-      DEBUG_MODE: "True"
-      WRITE_LOGS: "True"
-      
-      BOT_TOKEN: ""
-      TG_ADMIN_ID: ""
-      
-      DB_HOST: ""
-      DB_PORT: 
-      DB_USER: ""
-      DB_PASS: ""
-      DB_NAME: ""
-      
-      XUI_HOST: ""
-      XUI_USER: ""
-      XUI_PASS: ""
+      DEBUG_MODE: True
+      WRITE_LOGS: True
+      DEFAULT_TIMEZONE: 'Europe/Moscow'
+
+      BOT_TOKEN: 'ABC'
+      TG_ADMIN_ID: 123
+
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASS: admin
+      DB_NAME: db
+
+      DB_WG_USER: wg
+      DB_WG_PASS: 'wg'
+
+      DB_DEFAULT_SCHEMA_NAME: wg
+
+      XUI_HOST: 'http'
+      XUI_USER: admin
+      XUI_PASS: admin
     depends_on:
       - db
     restart: always
 
   db:
     image: postgres:14
-    restart: always
     volumes:
       - ./db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: 
-      POSTGRES_PASSWORD: 
-      POSTGRES_DB: 
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: db
+    restart: always
