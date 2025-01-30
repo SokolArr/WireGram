@@ -42,7 +42,9 @@ async def admin_cb_cmd(call: CallbackQuery):
                             f'✅ Добавил доступ для {user_tg_id}',
                             reply_markup=all_access_request_btn(user_tg_id)
                         )
-                        await bot.send_message(user_tg_id, '👋 Привет! Тебе одобрили подписку на бота 🎉')
+                        await bot.send_message(user_tg_id, 
+                                              '👋 Привет! Тебе одобрили подписку на бота 🎉\n'
+                                              'Используй /menu, чтобы узнать что можно сделать')
                     elif resp == ReturnCode.UNIQUE_VIOLATION:
                         resp_2 = await dbm.update_access(user_tg_id, 'BOT', 365)
                         if resp_2 == ReturnCode.SUCCESS:
@@ -50,7 +52,9 @@ async def admin_cb_cmd(call: CallbackQuery):
                                 f'🔄 Обновил доступ для {user_tg_id}',
                                 reply_markup=all_access_request_btn(user_tg_id)
                             )
-                            await bot.send_message(user_tg_id, '👋 Привет! Тебе продлили подписку на бота 🎉')
+                            await bot.send_message(user_tg_id, 
+                                                   '👋 Привет! Тебе продлили подписку на бота 🎉\n'
+                                                   'Используй /menu, чтобы узнать что можно сделать')
                         else:
                             raise Exception
                     else:
