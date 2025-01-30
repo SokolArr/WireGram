@@ -57,7 +57,7 @@ def actions_conf_kb(user_tg_id: int, config_name: str, is_renew_req: bool = Fals
         kb.append([InlineKeyboardButton(text="💵 Оплатил!", callback_data=f'serv_payed_btn:{user_tg_id}:{config_name}')])
     
     kb.append([InlineKeyboardButton(text="🔗 Ссылка на подключение", callback_data=f'serv_get_path_btn:{user_tg_id}:{config_name}')])
-    kb.append([InlineKeyboardButton(text="⛔️ Удалить конфиг", callback_data=f'serv_del_conf_btn:{user_tg_id}:{config_name}')])
+    # kb.append([InlineKeyboardButton(text="⛔️ Удалить конфиг", callback_data=f'serv_del_conf_btn:{user_tg_id}:{config_name}')])
     kb.append([InlineKeyboardButton(text="⬅️ Назад", callback_data=f'menu_service_btn:{user_tg_id}:no_conf')])
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
