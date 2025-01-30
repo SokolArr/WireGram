@@ -29,8 +29,8 @@ def access_requests_kb(requests: list[UserAccReqStruct]):
     builder = InlineKeyboardBuilder()
     for request in requests:
         user_id = request[0]
-        builder.row(InlineKeyboardButton(text=f"✅ {user_id}", callback_data=(f'admin_ars_acpt_btn:{user_id}')),
-                    InlineKeyboardButton(text=f"⛔️ {user_id}", callback_data=(f'admin_ars_decl_btn:{user_id}'))
+        builder.row(InlineKeyboardButton(text=f"✅ {user_id}", callback_data=(f'admin_ar_acpt_btn:{user_id}')),
+                    InlineKeyboardButton(text=f"⛔️ {user_id}", callback_data=(f'admin_ar_decl_btn:{user_id}'))
         )
         
     builder.row(InlineKeyboardButton(text="🔄 Все заявки к боту", callback_data=(f'admin_all_ar_btn:0')))
