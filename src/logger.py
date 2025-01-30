@@ -16,10 +16,6 @@ class MainLogger:
     #handlers
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-
-    #handlers
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
     
     
 logger = MainLogger.logger

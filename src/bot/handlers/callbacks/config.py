@@ -58,39 +58,42 @@ async def serv_cb_cmd(call: CallbackQuery):
                 user_new_order = await dbm.get_order(user_tg_id, config_name, 'NEW')
                 user_payed_order = await dbm.get_order(user_tg_id, config_name, 'PAYED')
                 if user_new_order:
+                    order_cost = user_new_order.order_data.get('config_price')
                     await call.message.edit_text(
-                        f'Нашел новый заказ на оплату конфига {config_name} от '
-                        f'{user_new_order.sys_inserted_dttm.strftime("%Y-%m-%d %H:%M:%S")}, оплати его',
+                        f'🔍 Нашел новый заказ на оплату конфига {config_name} от '
+                        f'{user_new_order.sys_inserted_dttm.strftime("%Y-%m-%d %H:%M:%S")}, оплати {order_cost}Р 💳',
                         reply_markup=actions_conf_kb(user_tg_id, config_name, is_pay_req=True)
                     )
                 elif user_payed_order:
                     await call.message.edit_text(
-                        f'Нашел оплаченный заказ по конфигу {config_name} от '
+                        f'🔍 Нашел оплаченный заказ по конфигу {config_name} от '
                         f'{user_payed_order.sys_updated_dttm.strftime("%Y-%m-%d %H:%M:%S")}, '
-                        'дождись его подтверждения',
+                        'дождись его подтверждения ⏳',
                         reply_markup=actions_conf_kb(user_tg_id, config_name)
                     )
                 else:
                     await call.message.edit_text(
-                        f'Вот что можно сделать с конфигом {config_name}',
+                        f'✨ Вот что можно сделать с конфигом {config_name}',
                         reply_markup=actions_conf_kb(user_tg_id, config_name, is_renew_req=True)
                     )
 
             case 'serv_renew_btn':
                 resp = await dbm.add_order(user_tg_id, config_name)
                 if resp == ReturnCode.SUCCESS:
+                    user_new_order = await dbm.get_order(user_tg_id, config_name, 'NEW')
+                    order_cost = user_new_order.order_data.get('config_price')
                     await call.message.edit_text(
-                        'Сформировал новый заказ на оплату',
+                        f'🛒 Сформировал новый заказ, оплати {order_cost}Р 💳',
                         reply_markup=new_order_view(user_tg_id, config_name)
                     )
                 elif resp == ReturnCode.UNIQUE_VIOLATION:
                     await call.message.edit_text(
-                        'Заказ по конфигу уже был сформирован',
+                        '⚠️ Заказ по конфигу уже был сформирован',
                         reply_markup=service_back_btn(user_tg_id, config_name)
                     )
                 else:
                     await call.message.edit_text(
-                        'Ошибка формирования заказа',
+                        '❌ Ошибка формирования заказа',
                         reply_markup=service_back_btn(user_tg_id, config_name)
                     )
 
@@ -98,20 +101,20 @@ async def serv_cb_cmd(call: CallbackQuery):
                 resp = await dbm.update_order_status(user_tg_id, config_name, 'NEW', 'PAYED')
                 if resp == ReturnCode.SUCCESS:
                     await call.message.edit_text(
-                        'Обновил статус заказа, дождись, пожалуйста, подтверждения оплаты',
+                        '✅ Обновил статус заказа, дождись, пожалуйста, подтверждения оплаты ⏳',
                         reply_markup=service_back_btn(user_tg_id, config_name)
                     )
                     admins_id = list(set([settings.TG_ADMIN_ID] + (await dbm.get_admins())))
                     for admin_id in admins_id:
                         await bot.send_message(
                             admin_id,
-                            html.bold("ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ\n") +
-                            f'Пользователь {user_tg_id} совершил оплату по конфигу {config_name}',
+                            html.bold("🚨 ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ\n") +
+                            f'Пользователь {user_tg_id} совершил оплату по конфигу {config_name} 💳',
                             reply_markup=conf_pay_request_kb(user_tg_id, config_name)
                         )
                 else:
                     await call.message.edit_text(
-                        'Ошибка обновления статуса заказа',
+                        '❌ Ошибка обновления статуса заказа',
                         reply_markup=service_back_btn(user_tg_id, config_name)
                     )
 
@@ -125,7 +128,7 @@ async def serv_cb_cmd(call: CallbackQuery):
                     if n > max_config_n:
                         max_config_n = n
                 config_name = f'{conf_tag}_{user_tg_id}_{max_config_n + 1}'
-                await call.message.edit_text('Создаю...')
+                await call.message.edit_text('🛠️ Создаю...')
                 try:
                     inbound_id = await VlessInboundApi().make_vless_inbound(
                         settings.XUI_VLESS_REMARK, settings.XUI_VLESS_PORT
@@ -143,17 +146,17 @@ async def serv_cb_cmd(call: CallbackQuery):
                             if resp == ReturnCode.SUCCESS:
                                 await update_user_config_cached_data(user_tg_id, config_name)
                                 await call.message.edit_text(
-                                    f'Сформировал для тебя конфиг {config_name} и предоставил 14 тестовых дней',
+                                    f'🎉 Сформировал для тебя конфиг {config_name} и предоставил 14 тестовых дней 🆓',
                                     reply_markup=new_conf_view(user_tg_id, config_name)
                                 )
                             else:
                                 await call.message.edit_text(
-                                    f'Ошибка добавления конфига {config_name}',
+                                    f'❌ Ошибка добавления конфига {config_name}',
                                     reply_markup=services_kb(user_tg_id, user_service_configs)
                                 )
                 except Exception as e:
                     await call.message.edit_text(
-                        f'Ошибка добавления конфига {config_name}',
+                        f'❌ Ошибка добавления конфига {config_name}',
                         reply_markup=menu_kb(user_tg_id)
                     )
                     raise e
@@ -163,12 +166,12 @@ async def serv_cb_cmd(call: CallbackQuery):
                 if resp == ReturnCode.SUCCESS:
                     await VlessClientApi().delete_client(config_name)
                     await call.message.edit_text(
-                        f'Удалил твой конфиг {config_name}',
+                        f'🗑️ Удалил твой конфиг {config_name}',
                         reply_markup=service_del_view(user_tg_id)
                     )
                 else:
                     await call.message.edit_text(
-                        f'Не смог удалить твой конфиг {config_name}',
+                        f'❌ Не смог удалить твой конфиг {config_name}',
                         reply_markup=service_back_btn(user_tg_id, config_name)
                     )
 
@@ -195,9 +198,16 @@ async def serv_cb_cmd(call: CallbackQuery):
                     else:
                         config_path = await VlessClientApi().get_vless_client_link_by_email(config_name)
                         await update_user_config_cached_data(user_tg_id, config_name)
-                    await call.message.edit_text(
-                        f'Вот ссылка для тебя. Вставь ее в приложении\n\n{html.code(config_path)}',
-                        reply_markup=service_back_btn(user_tg_id, config_name)
+                    mess = (
+                        "Для того, чтобы воспользоваться ссылкой, ее необходимо вставить в приложении:\n"
+                        f"🌟 - для Android: <a href='https://play.google.com/store/apps/details?id=com.v2ray.ang'>ссылка</a>\n"
+                        f"🍏 - для Apple (iOS): <a href='https://apps.apple.com/app/id6476628951'>ссылка</a>\n"
+                        f"💻 - для PC: <a href='https://github.com/2dust/v2rayN/releases/download/7.4.2/v2rayN-windows-64-With-Core.zip'>ссылка</a>\n"
+                        f"🔗 - все варианты: <a href='https://vlesskey.com/download'>ссылка</a>"
+                    )
+                    await call.message.edit_text(mess
+                        + f'\n\n{html.pre(config_path)}', parse_mode="HTML",
+                        reply_markup=service_back_btn(user_tg_id, config_name), disable_web_page_preview=True
                     )
 
     except Exception as e:

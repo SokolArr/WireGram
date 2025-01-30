@@ -39,25 +39,25 @@ async def admin_cb_cmd(call: CallbackQuery):
                     resp = await dbm.add_access(user_tg_id, 'BOT', 365)
                     if resp == ReturnCode.SUCCESS:
                         await call.message.edit_text(
-                            f'Добавил доступ для {user_tg_id}',
+                            f'✅ Добавил доступ для {user_tg_id}',
                             reply_markup=all_access_request_btn(user_tg_id)
                         )
-                        await bot.send_message(user_tg_id, 'Привет! Тебе одобрили подписку на бота')
+                        await bot.send_message(user_tg_id, '👋 Привет! Тебе одобрили подписку на бота 🎉')
                     elif resp == ReturnCode.UNIQUE_VIOLATION:
                         resp_2 = await dbm.update_access(user_tg_id, 'BOT', 365)
                         if resp_2 == ReturnCode.SUCCESS:
                             await call.message.edit_text(
-                                f'Обновил доступ для {user_tg_id}',
+                                f'🔄 Обновил доступ для {user_tg_id}',
                                 reply_markup=all_access_request_btn(user_tg_id)
                             )
-                            await bot.send_message(user_tg_id, 'Привет! Тебе продлили подписку на бота')
+                            await bot.send_message(user_tg_id, '👋 Привет! Тебе продлили подписку на бота 🎉')
                         else:
                             raise Exception
                     else:
                         raise Exception
                 except Exception:
                     await call.message.edit_text(
-                        f'Ошибка добавления доступа для {user_tg_id}',
+                        f'❌ Ошибка добавления доступа для {user_tg_id}',
                         reply_markup=all_access_request_btn(user_tg_id)
                     )
 
@@ -68,12 +68,12 @@ async def admin_cb_cmd(call: CallbackQuery):
                 access_requests = await dbm.get_access_requests('BOT', limit=3)
                 if access_requests:
                     await call.message.edit_text(
-                        'Вот первые три заявки:',
+                        '📋 Вот первые три заявки:',
                         reply_markup=access_requests_kb(access_requests).as_markup()
                     )
                 else:
                     await call.message.edit_text(
-                        'Тут пуфто...',
+                        '📭 Тут пусто...',
                         reply_markup=all_access_request_btn(user_tg_id)
                     )
 
@@ -88,23 +88,23 @@ async def admin_cb_cmd(call: CallbackQuery):
                     )
                     if resp == ReturnCode.SUCCESS:
                         await call.message.edit_text(
-                            f'Обновил статус заказа для {user_tg_id} {user_config_name} '
-                            'и продлил доступ сервиса на 30 дней',
+                            f'✅ Обновил статус заказа для {user_tg_id} {user_config_name} '
+                            'и продлил доступ сервиса на 30 дней 📅',
                             reply_markup=admin_menu_kb(user_tg_id)
                         )
                         await bot.send_message(
                             user_tg_id,
-                            f'Привет!\nТебе подтвердили оплату для конфига {user_config_name}!'
+                            f'👋 Привет!\nТебе подтвердили оплату для конфига {user_config_name}! 🎉'
                         )
                     else:
                         await call.message.edit_text(
-                            f'Ошибка добавления доступа для {user_tg_id} {user_config_name}',
+                            f'❌ Ошибка добавления доступа для {user_tg_id} {user_config_name}',
                             reply_markup=admin_menu_kb(user_tg_id)
                         )
                         logger.error(f'BAD TRY TO ACEPT SERVICE ACCESS TO {user_tg_id}')
                 else:
                     await call.message.edit_text(
-                        f'Ошибка добавления доступа для {user_tg_id} {user_config_name} на 3xui',
+                        f'❌ Ошибка добавления доступа для {user_tg_id} {user_config_name} на 3xui',
                         reply_markup=admin_menu_kb(user_tg_id)
                     )
                     logger.error(f'BAD TRY TO ACEPT SERVICE ACCESS TO {user_tg_id} ON 3XUI')
@@ -113,16 +113,16 @@ async def admin_cb_cmd(call: CallbackQuery):
                 resp = await dbm.update_order_status(user_tg_id, user_config_name, 'PAYED', 'NEW')
                 if resp == ReturnCode.SUCCESS:
                     await call.message.edit_text(
-                        f'Отклонил заказ для {user_tg_id} {user_config_name} в состояние NEW',
+                        f'❌ Отклонил заказ для {user_tg_id} {user_config_name} в состояние NEW',
                         reply_markup=admin_menu_kb(user_tg_id)
                     )
                     await bot.send_message(
                         user_tg_id,
-                        f'Привет!\nТвоя оплата для конфига {user_config_name} была отклонена!'
+                        f'👋 Привет!\nТвоя оплата для конфига {user_config_name} была отклонена! ❌'
                     )
                 else:
                     await call.message.edit_text(
-                        f'Ошибка отклонить заказ для {user_tg_id} {user_config_name} в состояние NEW',
+                        f'❌ Ошибка отклонить заказ для {user_tg_id} {user_config_name} в состояние NEW',
                         reply_markup=admin_menu_kb(user_tg_id)
                     )
                     logger.error(f'BAD TRY TO DECLINE SERVICE ACCESS TO {user_tg_id}')
@@ -131,12 +131,12 @@ async def admin_cb_cmd(call: CallbackQuery):
                 payed_orders = await dbm.get_payed_orders(limit=3)
                 if payed_orders:
                     await call.message.edit_text(
-                        'Вот первые три заявки:',
+                        '📋 Вот первые три заявки:',
                         reply_markup=conf_pay_requests_btn(payed_orders)
                     )
                 else:
                     await call.message.edit_text(
-                        'Тут пуфто...',
+                        '📭 Тут пусто...',
                         reply_markup=all_conf_pay_requests_btn(user_tg_id)
                     )
 

@@ -22,21 +22,36 @@ async def join_cmd(message: Message) -> None:
                 acc_req_resp = await dbm.add_access_request(user.user_tg_id, 'BOT')
                 if acc_req_resp == ReturnCode.SUCCESS:
                     for admin_id in admins_id:
-                        await bot.send_message(admin_id, html.bold("ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ") + 
-                                               f'\n\nПоступил запрос на продление доступа (от {user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S")}) к боту для пользователя @{user.user_tag}({user.user_tg_id})', reply_markup=access_request_kb(user.user_tg_id))
-                    await message.answer(f'У тебя закончился доступ к боту {html.bold(user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S"))}, и я направил новый запрос на доступ')
+                        await bot.send_message(
+                            admin_id,
+                            html.bold("🚨 ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ\n") +
+                            f'Поступил запрос на продление доступа (от {user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S")}) '
+                            f'к боту для пользователя @{user.user_tag} ({user.user_tg_id})',
+                            reply_markup=access_request_kb(user.user_tg_id)
+                        )
+                    await message.answer(
+                        f'⚠️ У тебя закончился доступ к боту {html.bold(user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S"))}, '
+                        'и я направил новый запрос на доступ ⏳'
+                    )
                 elif acc_req_resp == ReturnCode.UNIQUE_VIOLATION:
-                    await message.answer('Ты уже запрашивал доступ. Дождись его одобрения!')
+                    await message.answer('🕒 Ты уже запрашивал доступ. Дождись его одобрения!')
             else:
-                await message.answer(f'Твой доступ действует до {html.bold(user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S"))}')
+                await message.answer(
+                    f'✅ Твой доступ действует до {html.bold(user_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S"))}'
+                )
         else:
             acc_req_resp = await dbm.add_access_request(user.user_tg_id, 'BOT')
             if acc_req_resp == ReturnCode.SUCCESS:
                 for admin_id in admins_id:
-                    await bot.send_message(admin_id, html.bold("ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ") + 
-                                           f'\n\nПоступил запрос на получение доступа к боту от нового пользователя @{user.user_tag}({user.user_tg_id})', reply_markup=access_request_kb(user.user_tg_id))
-                await message.answer('Направил запрос на доступ к боту')
+                    await bot.send_message(
+                        admin_id,
+                        html.bold("🚨 ВНИМАНИЕ!\nСООБЩЕНИЕ АДМИНИСТРАТОРУ\n") +
+                        f'Поступил запрос на получение доступа к боту от нового пользователя '
+                        f'@{user.user_tag} ({user.user_tg_id})',
+                        reply_markup=access_request_kb(user.user_tg_id)
+                    )
+                await message.answer('📨 Направил запрос на доступ к боту. Ожидай одобрения! ⏳')
             elif acc_req_resp == ReturnCode.UNIQUE_VIOLATION:
-                await message.answer('Ты уже запрашивал доступ. Дождись его одобрения!')
+                await message.answer('🕒 Ты уже запрашивал доступ. Дождись его одобрения!')
     else:
-        await message.answer('Я тебя не знаю, жми /start и будем знакомы!')
+        await message.answer('🤔 Я тебя не знаю, жми /start и будем знакомы! 👋')

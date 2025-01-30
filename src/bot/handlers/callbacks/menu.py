@@ -24,13 +24,13 @@ async def menu_cb_cmd(call: CallbackQuery):
                 user_configs = await dbm.get_service_configs(user_tg_id)
                 conf_mess = ''
                 if user_configs:
-                    conf_mess += '\n- Конфигурации\n'
+                    conf_mess += '\n- 🛠️ Конфигурации\n'
                     for idx, conf in enumerate(user_configs):
                         conf_mess += f'  - {idx + 1}. {conf.config_name}\n'
                 bot_access = await dbm.get_access(user_tg_id, 'BOT')
                 mess = (
-                    html.bold('Личный кабинет\n') +
-                    f'\n- Доступ к боту дествителен до {bot_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S")}' +
+                    html.bold('📂 Личный кабинет\n') +
+                    f'\n- 🔑 Доступ к боту действителен до {bot_access.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S")}' +
                     f'{conf_mess}'
                 )
                 try:
@@ -45,12 +45,12 @@ async def menu_cb_cmd(call: CallbackQuery):
                     for idx, conf in enumerate(user_configs):
                         conf_mess += f'{idx + 1}. {conf.config_name} (активна до {conf.valid_to_dttm.strftime("%Y-%m-%d %H:%M:%S")})\n'
                     mess = (
-                        html.bold(f'Конфигурации ({len(user_configs)}/3)\n') +
+                        html.bold(f'🛠️ Конфигурации ({len(user_configs)}/3)\n') +
                         conf_mess
                     )
                     await call.message.edit_text(mess, reply_markup=services_kb(user_tg_id, user_configs))
                 else:
-                    await call.message.edit_text(f'Не нашел твоих конфигов', reply_markup=new_service_kb(user_tg_id))
+                    await call.message.edit_text(f'❌ Не нашел твоих конфигов', reply_markup=new_service_kb(user_tg_id))
                     logger.debug(f'NO USER {user_tg_id} CONFIGS')
             
             case 'menu_pref_btn':
