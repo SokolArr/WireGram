@@ -15,41 +15,49 @@ from bot.handlers.callbacks.config import serv_cb_cmd
 
 router = Router()
 
-@router.message(Command('admin'))
+
+@router.message(Command("admin"))
 @new_message
 async def admin_handler(message: Message):
     await admin_cmd(message)
-    
-@router.message(Command('help'))
+
+
+@router.message(Command("help"))
 @new_message
 async def help_handler(message: Message):
     await help_cmd(message)
 
-@router.message(Command('join'))
+
+@router.message(Command("join"))
 @new_message
 async def join_handler(message: Message):
     await join_cmd(message)
 
-@router.message(Command('menu'))
+
+@router.message(Command("menu"))
 @new_message
 async def menu_handler(message: Message):
     await menu_cmd(message)
-    
+
+
 @router.message(CommandStart())
 @new_message
 async def start_handler(message: Message):
     await start_cmd(message)
 
+
 @router.callback_query(F.data.startswith("admin"))
 @new_сall
 async def admin_btn_handler(call: CallbackQuery):
     await admin_cb_cmd(call)
-    
+
+
 @router.callback_query(F.data.startswith("menu"))
 @new_сall
 async def menu_btn_handler(call: CallbackQuery):
     await menu_cb_cmd(call)
-    
+
+
 @router.callback_query(F.data.startswith("serv"))
 @new_сall
 async def serv_btn_handler(call: CallbackQuery):

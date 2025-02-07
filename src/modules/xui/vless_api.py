@@ -1,13 +1,17 @@
 import uuid
-import logging
 from datetime import datetime, timezone, timedelta
 
 from py3xui import AsyncApi, Inbound, Client
 from py3xui.inbound import Settings, Sniffing, StreamSettings
 from settings import settings
+from logger import MainLogger
 
-vless_api = AsyncApi(host=settings.XUI_HOST, username=settings.XUI_USER, password=settings.XUI_PASS)
-logger = logging.getLogger(__name__)
+vless_api = AsyncApi(
+    host=settings.XUI_HOST,
+    username=settings.XUI_USER,
+    password=settings.XUI_PASS,
+)
+logger = MainLogger(__name__).get()
 
 
 class VlessInboundApi:
@@ -23,7 +27,43 @@ class VlessInboundApi:
         await vless_api.login()
 
         inbounds = await vless_api.inbound.get_list()
-        return [{'remark': inbound.remark, 'id': inbound.id, 'port': inbound.port} for inbound in inbounds]
+        return [
+            {"remark": inbound.remark, "id": inbound.id, "port": inbound.port}
+            for inbound in inbounds
+        ]
+
+    async def get_inbounds_free_port(self) -> list[dict]:
+        await vless_api.login()
+
+        inbounds = await vless_api.inbound.get_list()
+
+        all_existed_ports = []
+        max_port = settings.XUI_VLESS_PORT + settings.XUI_MAX_USED_PORTS
+        for inbound in inbounds:
+            if (
+                inbound.port >= settings.XUI_VLESS_PORT
+                and inbound.port <= max_port
+            ):
+                all_existed_ports.append(inbound.port)
+
+        range_vless_ports = range(settings.XUI_VLESS_PORT, max_port + 1)
+        free_ports = []
+        for port in range_vless_ports:
+            if port not in all_existed_ports:
+                free_ports.append(port)
+
+        if free_ports:
+            free_port = min(free_ports)
+            if (free_port >= settings.XUI_VLESS_PORT) and (
+                free_port <= max_port
+            ):
+                return free_port
+            else:
+                logger.error("NO FREE PORTS FOR VLESS CONF")
+                raise Exception("NO FREE PORTS FOR VLESS CONF")
+        else:
+            logger.error("NO FREE PORTS FOR VLESS CONF")
+            raise Exception("NO FREE PORTS FOR VLESS CONF")
 
     async def get_inbounds_id_by_remark(self, remark: str) -> int:
         """
@@ -39,11 +79,13 @@ class VlessInboundApi:
 
         inbounds_data = await self.get_inbounds_data()
         for inbound in inbounds_data:
-            if inbound.get('remark') == remark:
-                return inbound.get('id')
+            if inbound.get("remark") == remark:
+                return inbound.get("id")
         return None
 
-    async def make_vless_inbound(self, inbound_name: str, inbound_port: int) -> int:
+    async def make_vless_inbound(
+        self, inbound_name: str, inbound_port: int
+    ) -> int:
         """
         Create a new VLESS inbound with the specified name and port.
 
@@ -63,41 +105,50 @@ class VlessInboundApi:
             return inbound_id
 
         else:
-            settings = Settings(clients=[], decryption='none', fallbacks=[])
+            settings = Settings(clients=[], decryption="none", fallbacks=[])
             stream_settings = StreamSettings(
-                security='reality',
-                network='tcp',
-                tcp_settings={'acceptProxyProtocol': False, 'header': {'type': 'none'}},
+                security="reality",
+                network="tcp",
+                tcp_settings={
+                    "acceptProxyProtocol": False,
+                    "header": {"type": "none"},
+                },
                 kcp_settings={},
                 external_proxy=[],
                 reality_settings={
-                    'show': False,
-                    'xver': 0,
-                    'dest': 'google.com:443',
-                    'serverNames': ['www.google.com'],
-                    'privateKey': 'GAiJD7L8ADep2NVcQPiuZc9l_ZxXTSCXmpVzPM6CdH8',
-                    'minClient': '',
-                    'maxClient': '',
-                    'maxTimediff': 0,
-                    'shortIds': [
-                        '33cf5dbed8e1', '60571c', '6395f4e62e', 'b688d136', '4b02', '1d1ec1a2dc04de9e', '11',
-                        'db0a75113d6ea9'
+                    "show": False,
+                    "xver": 0,
+                    "dest": "google.com:443",
+                    "serverNames": ["www.google.com"],
+                    "privateKey": "GAiJD7L8ADep2NVcQPiuZc9l_ZxXTSCXmpVzPM6CdH8",
+                    "minClient": "",
+                    "maxClient": "",
+                    "maxTimediff": 0,
+                    "shortIds": [
+                        "33cf5dbed8e1",
+                        "60571c",
+                        "6395f4e62e",
+                        "b688d136",
+                        "4b02",
+                        "1d1ec1a2dc04de9e",
+                        "11",
+                        "db0a75113d6ea9",
                     ],
-                    'settings': {
-                        'publicKey': '9WIrle9cM-dmkxvaYJEeytOnkHJCYoHojVQi-zg3_DI',
-                        'fingerprint': 'firefox',
-                        'serverName': '',
-                        'spiderX': '/'
-                    }
+                    "settings": {
+                        "publicKey": "9WIrle9cM-dmkxvaYJEeytOnkHJCYoHojVQi-zg3_DI",
+                        "fingerprint": "firefox",
+                        "serverName": "",
+                        "spiderX": "/",
+                    },
                 },
                 xtls_settings={},
-                tls_settings={}
+                tls_settings={},
             )
             sniffing = Sniffing(
                 enabled=True,
-                dest_override=['http', 'tls', 'quic', 'fakedns'],
+                dest_override=["http", "tls", "quic", "fakedns"],
                 metadata_only=False,
-                route_only=False
+                route_only=False,
             )
 
             inbound = Inbound(
@@ -108,16 +159,20 @@ class VlessInboundApi:
                 stream_settings=stream_settings,
                 sniffing=sniffing,
                 remark=inbound_name,
-                listen='',
+                listen="",
                 total=0,
                 expiry_time=0,
                 client_stats=None,
-                tag=('default-tag-' + inbound_name)
+                tag=("default-tag-" + inbound_name),
             )
             try:
                 await vless_api.inbound.add(inbound)
-                inbound_id = await self.get_inbounds_id_by_remark(remark=inbound_name)
-                await VlessClientApi(expired_deltatime_days=9999).make_vless_client(inbound_id, 'admin_user')
+                inbound_id = await self.get_inbounds_id_by_remark(
+                    remark=inbound_name
+                )
+                await VlessClientApi(
+                    expired_deltatime_days=9999
+                ).make_vless_client(inbound_id, "admin_user")
                 return inbound_id
 
             except Exception as e:
@@ -128,7 +183,9 @@ class VlessInboundApi:
 class VlessClientApi:
     """A class to manage VLESS client configurations on the X-UI panel."""
 
-    def __init__(self, flow: str = 'xtls-rprx-vision', expired_deltatime_days: int = 30):
+    def __init__(
+        self, flow: str = "xtls-rprx-vision", expired_deltatime_days: int = 30
+    ):
         """
         Initialize the VlessClientApi.
 
@@ -139,7 +196,9 @@ class VlessClientApi:
         self.expired_deltatime_days = expired_deltatime_days
         self.flow = flow
 
-    async def make_vless_client(self, inbound_id: int, client_email: str) -> str:
+    async def make_vless_client(
+        self, inbound_id: int, client_email: str
+    ) -> str:
         """
         Create a new VLESS client for the specified inbound.
 
@@ -152,20 +211,25 @@ class VlessClientApi:
         """
         await vless_api.login()
 
-        if await vless_api.client.get_by_email(client_email):
+        client = await vless_api.client.get_by_email(client_email)
+        if client:
             logger.debug(f'Client: "{client_email}" already exists! Skipped!')
             return client_email
         else:
             client_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, client_email))
-            exp_time = datetime.now(timezone.utc) + timedelta(self.expired_deltatime_days)
+            exp_time = datetime.now(timezone.utc) + timedelta(
+                self.expired_deltatime_days
+            )
             new_client = Client(
                 id=client_id,
                 email=client_email,
                 enable=True,
                 flow=self.flow,
-                expiryTime=int(exp_time.timestamp() * 1000)
+                expiryTime=int(exp_time.timestamp() * 1000),
             )
-            await vless_api.client.add(inbound_id=inbound_id, clients=[new_client])
+            await vless_api.client.add(
+                inbound_id=inbound_id, clients=[new_client]
+            )
             return client_email
 
     async def get_client_uuid_by_email(self, client_email):
@@ -204,9 +268,13 @@ class VlessClientApi:
             if inbound.settings.clients:
                 for client in inbound.settings.clients:
                     if client.email == client_email:
-                        return datetime.fromtimestamp(client.expiry_time/1000)
+                        return datetime.fromtimestamp(
+                            client.expiry_time / 1000
+                        )
 
-    async def update_client_expired_time(self, client_email: str, new_time: datetime) -> bool:
+    async def update_client_expired_time(
+        self, client_email: str, new_time: datetime
+    ) -> bool:
         """
         Update the expiration time of a client.
 
@@ -248,9 +316,13 @@ class VlessClientApi:
             await vless_api.login()
             client = await vless_api.client.get_by_email(client_email)
             if client:
-                client_inbound = await vless_api.client.get_by_email(client_email)
+                client_inbound = await vless_api.client.get_by_email(
+                    client_email
+                )
                 client_id = await self.get_client_uuid_by_email(client_email)
-                await vless_api.client.delete(client_inbound.inbound_id, client_id)
+                await vless_api.client.delete(
+                    client_inbound.inbound_id, client_id
+                )
         except Exception as e:
             raise e
 
@@ -266,7 +338,7 @@ class VlessClientApi:
         """
         await vless_api.login()
 
-        vless_link = ''
+        vless_link = ""
         client = await vless_api.client.get_by_email(email)
         if client:
             inbound = await vless_api.inbound.get_by_id(client.inbound_id)
@@ -280,15 +352,27 @@ class VlessClientApi:
                         ib_remark = inbound.remark
                         ib_network = inbound.stream_settings.network
                         ib_sec = inbound.stream_settings.security
-                        ib_snif = inbound.stream_settings.reality_settings['serverNames'][0]
-                        ib_sid = inbound.stream_settings.reality_settings["shortIds"][0]
-                        ib_pbk = inbound.stream_settings.reality_settings["settings"]['publicKey']
-                        ib_fp = inbound.stream_settings.reality_settings["settings"]['fingerprint']
-                        ib_spx = inbound.stream_settings.reality_settings["settings"]['spiderX']
-                        serv_host = vless_api.server.host.split('//')[1].split(':')[0]
+                        ib_snif = inbound.stream_settings.reality_settings[
+                            "serverNames"
+                        ][0]
+                        ib_sid = inbound.stream_settings.reality_settings[
+                            "shortIds"
+                        ][0]
+                        ib_pbk = inbound.stream_settings.reality_settings[
+                            "settings"
+                        ]["publicKey"]
+                        ib_fp = inbound.stream_settings.reality_settings[
+                            "settings"
+                        ]["fingerprint"]
+                        ib_spx = inbound.stream_settings.reality_settings[
+                            "settings"
+                        ]["spiderX"]
+                        serv_host = vless_api.server.host.split("//")[1].split(
+                            ":"
+                        )[0]
 
                         vless_link = (
-                            f'vless://{cl_id}@{serv_host}:{ib_port}?type={ib_network}&security={ib_sec}&pbk={ib_pbk}&'
-                            f'fp={ib_fp}&sni={ib_snif}&sid={ib_sid}&spx={ib_spx}&flow={cl_flow}#{ib_remark}-{cl_email}'
+                            f"vless://{cl_id}@{serv_host}:{ib_port}?type={ib_network}&security={ib_sec}&pbk={ib_pbk}&"
+                            f"fp={ib_fp}&sni={ib_snif}&sid={ib_sid}&spx={ib_spx}&flow={cl_flow}#{ib_remark}-{cl_email}"
                         )
             return vless_link

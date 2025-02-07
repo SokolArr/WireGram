@@ -8,6 +8,8 @@ __old
 /prod
 .vscode
 3x-ui
+todo
+/logs
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
