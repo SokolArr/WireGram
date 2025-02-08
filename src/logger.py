@@ -54,7 +54,8 @@ logger = MainLogger().get()
 
 
 def get_error_timestamp(logger: logging.Logger = None) -> str:
-    now_dttm_str = f"ERROR[{datetime.now().strftime("%Y%m%d%H%M%S")}]"
+    now_dttm = datetime.now().strftime("%Y%m%d%H%M%S")
+    now_dttm_str = f"ERROR[{now_dttm}]"
     if logger:
         logger.error(f"{now_dttm_str}")
     return html.code("\n" + now_dttm_str + "\n")
