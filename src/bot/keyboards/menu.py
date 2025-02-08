@@ -5,13 +5,13 @@ def menu_kb(user_tg_id: int):
     kb = [
         [
             InlineKeyboardButton(
-                text="💼 Личный кабинет",
+                text="📂 Личный кабинет",
                 callback_data=f"menu_ua_btn:{user_tg_id}",
             )
         ],
         [
             InlineKeyboardButton(
-                text="🌎 Доступ к сервису",
+                text="🌎 Сервисы и конфигурации",
                 callback_data=f"menu_service_btn:{user_tg_id}",
             )
         ],

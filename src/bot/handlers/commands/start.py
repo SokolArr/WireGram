@@ -20,8 +20,13 @@ async def start_cmd(message: Message) -> None:
 
     resp = await dbm.add_user(user_struct)
     if resp == ReturnCode.SUCCESS:
+        is_admin_str = (
+            "администратор "
+            if (message.from_user.id == settings.TG_ADMIN_ID)
+            else ""
+        )
         await message.answer(
-            f"Приятно 🤝 познакомиться, {'администратор ' if (message.from_user.id == settings.TG_ADMIN_ID) else ''}"
+            f"Приятно 🤝 познакомиться, {is_admin_str}"
             + f"{html.bold(message.from_user.full_name)}\n"
             + "✅ Нажми /join чтобы запросить доступ к боту\n"
             + "😑 Нажми /help если тебе непонятно, что делать\n"

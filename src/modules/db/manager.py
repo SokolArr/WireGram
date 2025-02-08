@@ -1,5 +1,4 @@
 import uuid
-import logging
 from enum import Enum
 from datetime import datetime, timedelta
 from sqlalchemy import (
@@ -10,6 +9,7 @@ from sqlalchemy import (
     or_,
     text,
     cast,
+    desc,
     String,
 )
 from sqlalchemy.orm import aliased
@@ -476,11 +476,23 @@ class DbManager:
     @staticmethod
     async def get_access_requests(
         access_name: str, limit: int = 3
-    ) -> UserAccReqStruct:
+    ) -> list[()]:
+        """
+        return [(UserStruct.user_tg_id,
+                 UserStruct.user_tag,
+                 UserAccReqStruct.access_name,
+                 UserAccReqStruct.sys_inserted_dttm),
+        ]
+        """
         try:
             async with dbs.async_session_factory() as session:
                 q = (
-                    select(UserStruct.user_tg_id, UserAccReqStruct.access_name)
+                    select(
+                        UserStruct.user_tg_id,
+                        UserStruct.user_tag,
+                        UserAccReqStruct.access_name,
+                        UserAccReqStruct.sys_inserted_dttm,
+                    )
                     .join(
                         UserStruct,
                         UserAccReqStruct.user_id == UserStruct.user_id,
@@ -951,9 +963,41 @@ class DbManager:
         except Exception as e:
             raise e
 
+    @staticmethod
+    async def get_oders_hist(
+        user_tg_id: int, limit: int = 2
+    ) -> list[OrderStruct]:
+        try:
+            async with dbs.async_session_factory() as session:
+                q_sel_usr = select(UserStruct.user_id).where(
+                    UserStruct.user_tg_id == user_tg_id
+                )
+                res = await session.scalars(q_sel_usr)
+                user_id = res.first()
+
+                q_sel_ord = (
+                    select(OrderStruct)
+                    .where(OrderStruct.user_id == user_id)
+                    .order_by(desc(OrderStruct.sys_updated_dttm))
+                    .limit(limit)
+                )
+                res = await session.scalars(q_sel_ord)
+                orders = res.all()
+                return orders
+        except Exception as e:
+            raise e
+
     #
     @staticmethod
     async def get_payed_orders(limit: int = 3) -> list[tuple]:
+        """
+        return [(u.user_tg_id,
+                 u.user_tag,
+                 o.order_status,
+                 o.order_data,
+                 o.sys_updated_dttm, )
+        ]
+        """
         try:
             async with dbs.async_session_factory() as session:
                 o = aliased(OrderStruct)
@@ -961,6 +1005,7 @@ class DbManager:
                 q_sel_ord = (
                     select(
                         u.user_tg_id,
+                        u.user_tag,
                         o.order_status,
                         o.order_data,
                         o.sys_updated_dttm,

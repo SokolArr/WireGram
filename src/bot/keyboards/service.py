@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from modules.db.models import UserServConfStruct
+from settings import settings
 
 
 def new_service_kb(user_tg_id: int):
@@ -28,11 +29,12 @@ def services_kb(user_tg_id: int, user_configs: list[UserServConfStruct]):
         builder.row(
             InlineKeyboardButton(
                 text=f"{idx+1}. {config.config_name}",
-                callback_data=f"serv_chosse_btn:{user_tg_id}:{config.config_name}",
+                callback_data=f"serv_chosse_btn:{user_tg_id}:"
+                f"{config.config_name}",
             )
         )
 
-    if len(user_configs) <= 2:
+    if len(user_configs) <= settings.MAX_CONF_PER_USER - 1:
         builder.row(
             InlineKeyboardButton(
                 text="✅ Создать конфиг",
@@ -42,7 +44,8 @@ def services_kb(user_tg_id: int, user_configs: list[UserServConfStruct]):
 
     builder.row(
         InlineKeyboardButton(
-            text="⬅️ Назад", callback_data=f"menu_back_btn:{user_tg_id}:no_conf"
+            text="⬅️ Назад",
+            callback_data=f"menu_back_btn:{user_tg_id}:no_conf",
         )
     )
     return builder.as_markup()

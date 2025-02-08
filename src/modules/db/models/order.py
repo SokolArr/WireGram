@@ -34,3 +34,7 @@ class OrderStruct(BaseStruct):
         ),
     )
     order_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
+def get_order_nm_str(order: OrderStruct, len_nm: int = 8):
+    return str(order.order_id)[:len_nm]

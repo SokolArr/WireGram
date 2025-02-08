@@ -3,11 +3,16 @@ from sqlalchemy.types import Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid import UUID
 from datetime import datetime
+from enum import Enum
 
 from .base import BaseStruct
 from ..settings import DBSettings
 
 dbs = DBSettings()
+
+
+class UserAccCode(Enum):
+    BOT = "BOT"
 
 
 class UserStruct(BaseStruct):

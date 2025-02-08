@@ -1,7 +1,9 @@
 import logging
 import sys
 import os
+from datetime import datetime
 from settings import settings
+from aiogram import html
 
 DEBUG_MODE = settings.DEBUG_MODE
 
@@ -44,8 +46,19 @@ class MainLogger:
         logger.setLevel(logging.DEBUG if settings.DEBUG_MODE else logging.INFO)
         MainLogger._add_handlers(logger, log_file_path)
 
-    def get(self):
+    def get(self) -> logging.Logger:
         return self.logger
 
 
 logger = MainLogger().get()
+
+
+def get_error_timestamp(logger: logging.Logger = None) -> str:
+    now_dttm_str = f"ERROR[{datetime.now().strftime("%Y%m%d%H%M%S")}]"
+    if logger:
+        logger.error(f"{now_dttm_str}")
+    return html.code("\n" + now_dttm_str + "\n")
+
+
+if __name__ == "__main__":
+    get_error_timestamp(logger)
