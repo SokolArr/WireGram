@@ -1,0 +1,1 @@
+0 11 * * * /usr/local/bin/python3 /app/main.py >> /var/log/notifyer.log 2>&1

@@ -1,6 +1,6 @@
 FROM python:3.13
 
-WORKDIR /app/wg_bot_src
+WORKDIR /app
 
 COPY requirements.txt .
 
