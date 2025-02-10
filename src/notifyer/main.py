@@ -56,7 +56,7 @@ async def main():
     for config in users_configs:
         user_tg_id = config[0]
         valid_to_dttm: datetime = config[3]
-        if valid_to_dttm - timedelta(2) < now_dttm:
+        if valid_to_dttm - timedelta(1) < now_dttm:
             delta: timedelta = valid_to_dttm - now_dttm
             days_left = delta.days
             left_ph = ""
