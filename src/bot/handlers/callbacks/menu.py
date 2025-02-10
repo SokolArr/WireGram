@@ -25,7 +25,7 @@ async def user_account(call: CallbackQuery, user_tg_id: int):
         profile_str = (
             f"\n👤 {html.bold("Профиль:")}"
             f"\n\t- Имя: {db_user.user_name}"
-            f"\n\t- Язык: {db_user.lang_code}\n"
+            f"\n\t- TG ID: {html.code(str(db_user.user_tg_id))}\n"
         )
         bot_access = await dbm.get_access(user_tg_id, UserAccCode.BOT.value)
         access_valid_to = bot_access.valid_to_dttm.strftime(
@@ -41,7 +41,7 @@ async def user_account(call: CallbackQuery, user_tg_id: int):
         if user_orders:
             order_mess += f"\n📦 {html.bold("История заказов:")}"
             order_mess += html.italic(
-                "\n- (cтатусы: 🆕 сформирован -> 💵 оплачен -> ✅ завершен)"
+                "\n(cтатусы: 🆕 сформирован -> 💵 оплачен -> ✅ завершен)"
             )
             for idx, order in enumerate(user_orders):
                 order_id = get_order_nm_str(order)
@@ -55,7 +55,7 @@ async def user_account(call: CallbackQuery, user_tg_id: int):
                 elif order.order_status == OrderStatus.CLOSED.value:
                     status = "✅ завершен"
                 order_mess += (
-                    f"\n\t{idx + 1}. Заказ {order_id} "
+                    f"\n\t{idx + 1}. Заказ {html.code(order_id)} "
                     f"(статус: {status}, время: {order_upd_dt_str})"
                 )
 
@@ -72,7 +72,7 @@ async def user_account(call: CallbackQuery, user_tg_id: int):
         if user_configs:
             conf_mess += f"\n🛠️ {html.bold("Конфигурации:")}"
             for idx, conf in enumerate(user_configs):
-                conf_mess += f"\n\t{idx + 1}. {conf.config_name}"
+                conf_mess += f"\n\t{idx + 1}. {html.code(conf.config_name)}"
             conf_mess += "\n"
 
         mess = (
@@ -105,7 +105,7 @@ async def user_services(call: CallbackQuery, user_tg_id: int):
             + (
                 "- Это раздел сервисов и конфигураций для них. "
                 "Hа данный момент доступны"
-                " конфигурации только на 'VLESS' протоколе подключения\n"
+                " конфигурации только на протоколе подключения 'VLESS' \n"
             )
         )
         user_configs = await dbm.get_service_configs(user_tg_id)
@@ -127,7 +127,8 @@ async def user_services(call: CallbackQuery, user_tg_id: int):
                     f"({active_place_holder} {conf_valid_to_dttm_str})\n"
                 )
             pre_mess_2 = (
-                "- Выбери необходимую конфигурацию с помощью кнопки ниже\n"
+                "- Продлить доступ или получить ссылку для "
+                "подключения можно с помощью соответствующей кнопки ниже\n"
             )
             used_configs = f"{len(user_configs)}/{settings.MAX_CONF_PER_USER}"
             mess = (

@@ -33,7 +33,9 @@ async def send_success_bot_sub_user(user_tg_id: int, expired_delta_days: int):
     )
 
 
-async def accept_bot_access_request(call: CallbackQuery, user_tg_id: int):
+async def accept_bot_access_request(
+    call: CallbackQuery, user_tg_id: int, from_fly_btn: bool = False
+):
     try:
         expired_delta_days = settings.BOT_ACCESS_EXPIRED_DELTA_DAYS
         resp = await dbm.add_access(
@@ -43,7 +45,11 @@ async def accept_bot_access_request(call: CallbackQuery, user_tg_id: int):
             await call.message.edit_text(
                 f"✅ Добавил доступ для {user_tg_id} "
                 f"на {expired_delta_days} дней 📅",
-                reply_markup=all_access_request_btn(user_tg_id),
+                reply_markup=(
+                    all_access_request_btn(user_tg_id)
+                    if not from_fly_btn
+                    else None
+                ),
             )
             await send_success_bot_sub_user(user_tg_id, expired_delta_days)
 
@@ -55,7 +61,11 @@ async def accept_bot_access_request(call: CallbackQuery, user_tg_id: int):
                 await call.message.edit_text(
                     f"🔄 Обновил доступ для {user_tg_id} "
                     f"на {expired_delta_days} дней 📅",
-                    reply_markup=all_access_request_btn(user_tg_id),
+                    reply_markup=(
+                        all_access_request_btn(user_tg_id)
+                        if not from_fly_btn
+                        else None
+                    ),
                 )
                 await send_success_bot_sub_user(user_tg_id, expired_delta_days)
             else:
@@ -133,7 +143,10 @@ async def all_conf_pay_requests(call: CallbackQuery, user_tg_id: int):
 
 
 async def accept_conf_pay_request(
-    call: CallbackQuery, user_tg_id: int, user_config_name: str
+    call: CallbackQuery,
+    user_tg_id: int,
+    user_config_name: str,
+    from_fly_btn: bool = False,
 ):
     try:
         expired_delta_days = settings.CONF_PAY_EXPIRED_DELTA_DAYS
@@ -153,7 +166,11 @@ async def accept_conf_pay_request(
                     f"{user_config_name} "
                     f"и продлил доступ сервиса "
                     f"на {expired_delta_days} дней 📅",
-                    reply_markup=admin_menu_kb(user_tg_id),
+                    reply_markup=(
+                        (admin_menu_kb(user_tg_id))
+                        if not from_fly_btn
+                        else None
+                    ),
                 )
                 await bot.send_message(
                     user_tg_id,
@@ -184,7 +201,10 @@ async def accept_conf_pay_request(
 
 
 async def decline_conf_pay_request(
-    call: CallbackQuery, user_tg_id: int, user_config_name: str
+    call: CallbackQuery,
+    user_tg_id: int,
+    user_config_name: str,
+    from_fly_btn: bool = False,
 ):
     try:
         resp = await dbm.update_order_status(
@@ -197,7 +217,9 @@ async def decline_conf_pay_request(
             await call.message.edit_text(
                 f"❌ Вернул заказ в состояние {OrderStatus.NEW.value} для "
                 f"{user_tg_id} {user_config_name}",
-                reply_markup=admin_menu_kb(user_tg_id),
+                reply_markup=(
+                    (admin_menu_kb(user_tg_id)) if not from_fly_btn else None
+                ),
             )
             await bot.send_message(
                 user_tg_id,
@@ -248,22 +270,37 @@ async def admin_cb_cmd(call: CallbackQuery):
                         reply_markup=admin_menu_kb(user_tg_id),
                     )
 
+                case "admin_ar_acpt_btn":
+                    await accept_bot_access_request(call, user_tg_id)
+
+                case "admin_conf_pay_acpt_btn":
+                    await accept_conf_pay_request(
+                        call, user_tg_id, user_config_name
+                    )
+
+                case "admin_conf_pay_decl_btn":
+                    await decline_conf_pay_request(
+                        call, user_tg_id, user_config_name
+                    )
+
+                case "admin_ar_decl_btn":
+                    # TODO make decline access request button
+                    pass
+
         match call_tag:
-            case "admin_ar_acpt_btn":
-                await accept_bot_access_request(call, user_tg_id)
-
-            case "admin_ar_decl_btn":
-                # TODO make decline access request button
-                pass
-
-            case "admin_conf_pay_acpt_btn":
-                await accept_conf_pay_request(
-                    call, user_tg_id, user_config_name
+            case "admin_ar_acpt_fly_btn":
+                await accept_bot_access_request(
+                    call, user_tg_id, from_fly_btn=True
                 )
 
-            case "admin_conf_pay_decl_btn":
+            case "admin_conf_pay_acpt_fly_btn":
+                await accept_conf_pay_request(
+                    call, user_tg_id, user_config_name, from_fly_btn=True
+                )
+
+            case "admin_conf_pay_decl_fly_btn":
                 await decline_conf_pay_request(
-                    call, user_tg_id, user_config_name
+                    call, user_tg_id, user_config_name, from_fly_btn=True
                 )
 
     except Exception as e:

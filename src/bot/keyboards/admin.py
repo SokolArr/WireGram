@@ -27,13 +27,13 @@ def access_request_kb(user_tg_id: int):
         [
             InlineKeyboardButton(
                 text="✅ Принять",
-                callback_data=f"admin_ar_acpt_btn:{user_tg_id}",
+                callback_data=f"admin_ar_acpt_fly_btn:{user_tg_id}",
             )
         ],
         [
             InlineKeyboardButton(
                 text="⛔️ Отклонить",
-                callback_data=f"admin_ar_decl_btn:{user_tg_id}",
+                callback_data=f"admin_ar_decl_fly_btn:{user_tg_id}",
             )
         ],
     ]
@@ -97,7 +97,7 @@ def conf_pay_request_kb(user_tg_id: int, config_name: str):
             InlineKeyboardButton(
                 text="✅ Принять оплату",
                 callback_data=(
-                    f"admin_conf_pay_acpt_btn:{user_tg_id}:{config_name}"
+                    f"admin_conf_pay_acpt_fly_btn:{user_tg_id}:{config_name}"
                 ),
             )
         ],
@@ -105,7 +105,7 @@ def conf_pay_request_kb(user_tg_id: int, config_name: str):
             InlineKeyboardButton(
                 text="⛔️ Отклонить оплату",
                 callback_data=(
-                    f"admin_conf_pay_decl_btn:{user_tg_id}:{config_name}"
+                    f"admin_conf_pay_decl_fly_btn:{user_tg_id}:{config_name}"
                 ),
             )
         ],
