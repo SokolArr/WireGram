@@ -294,6 +294,7 @@ class VlessClientApi:
                 new_client = client
                 new_client.id = client_id
                 new_client.flow = self.flow
+                new_client.enable = True
                 new_client.expiry_time = int(new_time.timestamp() * 1000)
 
                 if client_id:
